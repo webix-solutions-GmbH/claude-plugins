@@ -242,6 +242,10 @@ so it is not loaded twice.
 
 ## Working on a mod
 
+How the mods work inside is documented in `.docs/` (start at `.docs/README.md`). Turn on its
+commit hook once per clone: `git config core.hooksPath .githooks`; it reminds you when a commit
+changes a mod's code but no note.
+
 Start `claude` in this folder. Each mod has the same layout:
 
 ```
