@@ -11,7 +11,7 @@ confidence: high
   `${$.plugin.root}/.claude-plugin/plugin.json` with `$.fs.read` (`readVersion`,
   `wbx-hud/hooks/register.tsx:479`); there is no API for a plugin's own version. It goes into the
   `version` atom (`wbx-hud/hooks/register.tsx:70`), drawn dim beside the sidebar's title as a
-  button that opens the changes tab ([sidebar.md](sidebar.md)). A failed read leaves the title
+  button (the version alone, the space before it outside) that opens the changes tab ([sidebar.md](sidebar.md)). A failed read leaves the title
   without it.
 - **The changelog** `wbx-hud/CHANGELOG.md` ships with the mod: a `## <version> — <date>` section
   per version, newest first, user-facing bullets. `parseChangelog`
@@ -24,7 +24,7 @@ confidence: high
 - **The changes tab**: a pane, id `wbx-hud-changes` (`CHANGES`, `wbx-hud/hooks/register.tsx:81`),
   opened by the version button or `/wbx-hud changes` beside the sidebar at its width, Escape
   closing it (`openChanges`, `wbx-hud/hooks/register.tsx:311`). Drawn at
-  `wbx-hud/hooks/register.tsx:1343`: per release the version in `accent`, the date dim, each line
+  `wbx-hud/hooks/register.tsx:1344`: an empty line, then per release the version in `accent`, the date dim, each line
   after a dim `· `; then "Older versions in CHANGELOG.md." and a close button. Without a
   changelog it says "No changelog found."
 - **The toast**: `wbx-hud <version>: <line>`, the version's first line; without one,
