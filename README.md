@@ -53,10 +53,10 @@ or in Claude Code's config menu (`/config`) or `~/.claude/settings.json`; the se
 value wins. A repeated value skips a level: `50,50,75` goes from green straight to orange.
 
 ```json
-"pluginConfigs": { "wbx-hud@inline": { "options": { "sevenDayLevels": "60,80,95" } } }
+"pluginConfigs": { "wbx-hud@webix": { "options": { "sevenDayLevels": "60,80,95" } } }
 ```
 
-(`wbx-hud@inline` while the mod is loaded through `CLAUDE_CODE_PLUGIN_DIRS`.)
+(`wbx-hud@inline` instead while the mod is loaded through `CLAUDE_CODE_PLUGIN_DIRS`.)
 
 | Option | Ring | Default | Means |
 |---|---|---|---|
