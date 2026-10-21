@@ -13,8 +13,10 @@ import {
   fmtElapsed,
   fmtMs,
   forecast,
+  hasWorkTime,
   inputTokens,
   isOn,
+  paceLevel,
   parseShortstat,
   restoreBurn,
   restoreHidden,
@@ -187,6 +189,46 @@ describe('windowRate', () => {
 
   test('a reset already past is no window', async () => {
     expect(windowRate(20, new Date(T0 - H).toISOString(), WEEK_MS, T0)).toBeNull()
+  })
+})
+
+describe('paceLevel', () => {
+  const H = 3_600_000
+  // local times, so the work hours hold wherever the tests run; 2026-10-19 is a Monday
+  const local = (day: number, hour: number) => new Date(2026, 9, day, hour).getTime()
+  const iso = (t: number) => new Date(t).toISOString()
+  // a 7d limit at 50% now, full after `hours` at 50%/`hours` an hour
+  const week = (now: number, hours: number, reset: number) => paceLevel('seven_day', 50, 50 / hours, iso(reset), now)
+
+  test('ok while the limit resets first', async () => {
+    expect(week(local(19, 10), 100, local(22, 10))).toBe('ok')
+  })
+
+  test('the 7d yellow when full only over a weekend', async () => {
+    // full Friday 20:00, resets Monday 07:00
+    expect(week(local(19, 10), 106, local(26, 7))).toBe('warn')
+  })
+
+  test('the 7d orange when work time is lost, red when full within a day', async () => {
+    // full Wednesday 10:00 / Monday 20:00, resets Thursday 10:00
+    expect(week(local(19, 10), 48, local(22, 10))).toBe('alert')
+    expect(week(local(19, 10), 10, local(22, 10))).toBe('hot')
+  })
+
+  test('the 5h red when full within 4 hours, else orange', async () => {
+    expect(paceLevel('five_hour', 30, 20, iso(T0 + 5 * H), T0)).toBe('hot')
+    expect(paceLevel('five_hour', 50, 12, iso(T0 + 5 * H), T0)).toBe('alert')
+  })
+})
+
+describe('hasWorkTime', () => {
+  const local = (day: number, hour: number) => new Date(2026, 9, day, hour).getTime()
+
+  test('weekdays from 8 to 19, no weekend', async () => {
+    expect(hasWorkTime(local(19, 19), local(20, 8))).toBe(false)
+    expect(hasWorkTime(local(19, 18), local(19, 20))).toBe(true)
+    expect(hasWorkTime(local(23, 19), local(26, 8))).toBe(false)
+    expect(hasWorkTime(local(23, 19), local(26, 9))).toBe(true)
   })
 })
 

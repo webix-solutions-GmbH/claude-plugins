@@ -20,7 +20,8 @@ const snap: Snapshot = {
 // stands in for the engine beneath the mod, then starts the session so the mod
 // reads it the way it does in a real one; a theme given is in the store as a past session left it,
 // as are the other entries given; the toasts shown are pushed to `toasts`; `limits` and `cost`
-// stand in for another account's usage
+// stand in for another account's usage; `fill.percent`, changed between readings, is the context's;
+// a `store` given is the one other sessions write as well
 const mountAt = async (
   $: Engine,
   on: On,
@@ -32,6 +33,8 @@ const mountAt = async (
     toasts = [],
     limits = snap.limits,
     cost,
+    fill = { percent: snap.contextPercent },
+    store: shared,
   }: {
     isWorking?: boolean
     theme?: string
@@ -39,6 +42,8 @@ const mountAt = async (
     toasts?: string[]
     limits?: Snapshot['limits']
     cost?: number
+    fill?: { percent?: number }
+    store?: Map<string, unknown>
   } = {},
 ) => {
   on('ui.toast', (_$, e) => (toasts.push(e.text), { value: undefined }))
@@ -47,7 +52,7 @@ const mountAt = async (
   on('session.usage', () => ({
     value: {
     startedAt: 0,
-    context: { tokens: snap.contextTokens, window: 1_000_000, percent: snap.contextPercent },
+    context: { tokens: snap.contextTokens, window: 1_000_000, percent: fill.percent },
     rateLimits: limits.map(l => ({ kind: l.kind, percentUsed: l.percent, resetsAt: l.resetsAt })),
     ...(cost === undefined ? {} : { cost: { usd: cost } }),
     },
@@ -57,7 +62,8 @@ const mountAt = async (
   on('clock.every', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'wbx-hud' } }))
   // the store, in memory as a session's would keep it
-  const store = new Map<string, unknown>([...(theme ? ([['theme', theme]] as [string, unknown][]) : []), ...stored])
+  const store = shared ?? new Map<string, unknown>()
+  for (const [k, v] of [...(theme ? ([['theme', theme]] as [string, unknown][]) : []), ...stored]) store.set(k, v)
   on('store.get', (_$, e) => ({ value: store.get(e.key) }))
   on('store.set', (_$, e) => (store.set(e.key, e.value), { value: undefined }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
@@ -256,6 +262,22 @@ describe('alerts', () => {
     await $.session.measure({} as never).catch(() => {})
     await $.session.start({ cwd: snap.cwd, surface: 'terminal', isInteractive: true } as never)
     expect(toasts).toHaveLength(1)
+  })
+
+  test("the context toasts once through a dip and another session's record", async ($, on) => {
+    const toasts: string[] = []
+    const fill = { percent: snap.contextPercent }
+    const store = new Map<string, unknown>()
+    await mountAt($, on, 200, { toasts, fill, store })
+    // a side call's smaller context, then the main one again
+    fill.percent = 5
+    await $.session.measure({} as never).catch(() => {})
+    fill.percent = 38
+    await $.session.measure({} as never).catch(() => {})
+    // another session at a low fill writes the shared store
+    store.set('alerted', { context: 0 })
+    await $.session.measure({} as never).catch(() => {})
+    expect(toasts).toEqual(['wbx-hud: context at 38%: a good point to /clear'])
   })
 
   test('a limit at red toasts with its reset, and shows the band above the prompt', async ($, on) => {

@@ -16,9 +16,14 @@ confidence: high
 - **Fill**: from `FILL_FROM` (context 1, limits 2, `wbx-hud/hooks/register.tsx:366`) the bar
   segment and the sidebar heading fill with the level color and the theme's `ink`.
 - **Hint**: from orange the context adds `→ /clear` (bar) or `→ a good point to /clear` (sidebar).
-- **Toasts**: `toastLevels` (`wbx-hud/hooks/register.tsx:385`, called at the end of `readAll`)
-  toasts on reaching 2 or 3; the levels reached are kept in the store as `alerted`, so a limit
-  does not repeat itself across sessions.
+- **Toasts**: `toastLevels` (`wbx-hud/hooks/register.tsx:416`, called at the end of `readAll`)
+  toasts on reaching 2 or 3; the limits' levels reached are kept in the store as `alerted`, so a
+  limit does not repeat itself across sessions. The context's is the session's own
+  `contextAlerted` atom: the store is one file for all running sessions, and two at different
+  fills overwrote each other's level, toasting at every 30 s reading. It only rises
+  (`nextReached`), as its percentage is the last response's and a side call (the auto-mode
+  classifier) dips it. A new session, `/clear` and a compaction (`session.compact` hook, not on
+  `precompute`) reset it.
 - **Band**: at 3, an `AbovePrompt` band per area until it falls back
   (`wbx-hud/hooks/register.tsx:1136`).
 - Each of fill, hint, toast and band can be switched off: the `alertsOff` atom and store

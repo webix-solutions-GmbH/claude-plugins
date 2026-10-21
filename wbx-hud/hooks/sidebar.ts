@@ -218,6 +218,41 @@ export const resetsFirst = (pct: number, rate: number, resetsAt: string | undefi
   return Number.isFinite(reset) && reset <= now + ((100 - pct) / rate) * 3_600_000
 }
 
+// work hours, local time, Monday to Friday: a 7-day limit full outside them loses no work
+export const WORK_HOURS = { from: 8, to: 19 }
+
+// whether [from, to) holds any work hour
+export const hasWorkTime = (from: number, to: number) => {
+  const day = new Date(from)
+  day.setHours(0, 0, 0, 0)
+  for (; day.getTime() < to; day.setDate(day.getDate() + 1)) {
+    if (day.getDay() === 0 || day.getDay() === 6) continue
+    const start = new Date(day).setHours(WORK_HOURS.from)
+    const end = new Date(day).setHours(WORK_HOURS.to)
+    if (start < to && end > from) return true
+  }
+  return false
+}
+
+// how soon a full limit is red: the 5h's within hours, the 7d's within a day
+const HOT_WITHIN_MS: Record<string, number> = { five_hour: 4 * 3_600_000, seven_day: 86_400_000 }
+
+// the pace's level: ok while the limit resets before it would fill; warn for a 7d limit full only
+// over a weekend; hot when full soon; alert otherwise
+export const paceLevel = (
+  kind: string,
+  pct: number,
+  rate: number,
+  resetsAt: string | undefined,
+  now: number,
+): 'ok' | 'warn' | 'alert' | 'hot' => {
+  if (resetsFirst(pct, rate, resetsAt, now)) return 'ok'
+  const fullAt = now + ((100 - pct) / rate) * 3_600_000
+  const reset = resetsAt ? Date.parse(resetsAt) : NaN
+  if (kind === 'seven_day' && Number.isFinite(reset) && !hasWorkTime(fullAt, reset)) return 'warn'
+  return fullAt - now < (HOT_WITHIN_MS[kind] ?? 0) ? 'hot' : 'alert'
+}
+
 // " 3 files changed, 84 insertions(+), 12 deletions(-)" -> { files: 3, added: 84, removed: 12 }
 export const parseShortstat = (out: string): Diff | undefined => {
   const files = out.match(/(\d+) files? changed/)

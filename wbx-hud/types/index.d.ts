@@ -94,6 +94,7 @@ declare module 'claude-code' {
     /** hidden: the items switched off in the sidebar and in the bar; persisted under the store's "hidden" */
     /** thresholds: each area's levels, as the settings tab set them, else the /config options; persisted under "levels" */
     /** alertsOff: the alerts switched off in the settings tab; persisted under "alertsOff" */
+    /** contextAlerted: the highest context level toasted this session, 0 after a compaction */
     /** agents: the agents whose turn runs, oldest first; one leaves when its turn ends */
     /** tick: the clock as of the last second while agents run, for their elapsed time */
     /** version: the mod's version from its plugin.json, null until read; the last one toasted is the store's "seenVersion" */
@@ -111,6 +112,7 @@ declare module 'claude-code' {
       hidden: Hidden
       thresholds: Record<Area, Levels>
       alertsOff: Alert[]
+      contextAlerted: number
       agents: AgentRun[]
       tick: number
       version: string | null

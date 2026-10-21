@@ -21,8 +21,8 @@ import {
   isOn,
   isShow,
   ITEMS,
+  paceLevel,
   parseShortstat,
-  resetsFirst,
   restoreBurn,
   restoreHidden,
   SHOWS,
@@ -62,6 +62,9 @@ const hidden = atom({ plugin: 'wbx-hud', key: 'hidden' } as const, DEFAULT_HIDDE
 // each area's thresholds and the alerts switched off, both set in the settings tab (persisted)
 const thresholds = atom({ plugin: 'wbx-hud', key: 'thresholds' } as const, DEFAULT_LEVELS)
 const alertsOff = atom({ plugin: 'wbx-hud', key: 'alertsOff' } as const, [])
+// the context's level toasted, the session's own: the store is one file for every session, and
+// two sessions at different fills would undo each other's and toast again at each reading
+const contextAlerted = atom({ plugin: 'wbx-hud', key: 'contextAlerted' } as const, 0)
 // the agents whose turn runs, and the clock their elapsed time is drawn from
 const agents = atom({ plugin: 'wbx-hud', key: 'agents' } as const, [])
 const tick = atom({ plugin: 'wbx-hud', key: 'tick' } as const, 0)
@@ -400,9 +403,16 @@ const alertText = (s: Snapshot, area: Area, level: number) => {
   return `${AREA_NAMES[area]} at ${pct}%${cd ? `, resets in ${cd}` : ''}`
 }
 
-// a toast when an area reaches orange or red, once per level: one that falls below a level
-// toasts again on its return. The levels reached are kept in the store, so a new session or a
-// /clear does not repeat a limit's toast
+// the level an area holds after a reading: a limit's follows the reading, as a new window lowers
+// it; the context's holds for the session, as a side call's response (a classifier, a title)
+// reads a smaller context for a moment, and its return would toast the same level again. A
+// /clear, a new session and a compaction let it go
+export const nextReached = (area: Area, before: number, level: number) =>
+  area === 'context' ? Math.max(before, level) : level
+
+// a toast when an area reaches orange or red, once per level: a limit that falls below a level
+// toasts again on its return. The limits' levels reached are kept in the store, so a new session
+// or a /clear does not repeat a limit's toast; the context's in the session's state
 async function toastLevels($: EngineInterface, s: Snapshot) {
   const levels = await read($, thresholds)
   const isOn = !(await read($, alertsOff)).includes('toast')
@@ -410,7 +420,7 @@ async function toastLevels($: EngineInterface, s: Snapshot) {
   const was = (typeof stored === 'object' && stored !== null ? stored : {}) as Record<string, unknown>
   const reached: Record<string, number> = {}
   for (const area of AREAS) {
-    const before = typeof was[area] === 'number' ? was[area] : 0
+    const before = area === 'context' ? await read($, contextAlerted) : typeof was[area] === 'number' ? was[area] : 0
     const pct = percentOf(s, area)
     if (pct === undefined) {
       reached[area] = before
@@ -418,9 +428,11 @@ async function toastLevels($: EngineInterface, s: Snapshot) {
     }
     const level = levelOf(levels[area], pct)
     if (isOn && level >= 2 && level > before) await $.ui.toast(`wbx-hud: ${alertText(s, area, level)}`)
-    reached[area] = level
+    reached[area] = nextReached(area, before, level)
   }
-  await $.store.set('alerted', reached)
+  const { context, ...limits } = reached
+  await update($, contextAlerted, () => context ?? 0)
+  await $.store.set('alerted', limits)
 }
 
 // the levels a demo has toasted, by area: apart from the real ones in the store, so a demo
@@ -635,6 +647,13 @@ export const register: Register = (on, options) => {
     const r = await next(e)
     if (e.agentId !== undefined) await endAgent($, e.agentId).catch(() => {})
     await refresh($).catch(() => {})
+    return r
+  })
+
+  // a precompute installs nothing: its result comes back as the compaction that uses it
+  on('session.compact', async ($, e, next) => {
+    const r = await next(e)
+    if (r.messages && e.trigger !== 'precompute') await update($, contextAlerted, () => 0).catch(() => {})
     return r
   })
 
@@ -861,10 +880,11 @@ export const register: Register = (on, options) => {
         { text: ` ${label} `, color: T.label ?? level },
         { text: `${ring(pct)} ${pct}% `, color: level },
       ]
-      // the pace, green while the limit resets before it would fill; none in a demo
+      // the pace, green while the limit resets before it would fill, else by how much it costs
+      // (paceLevel); none in a demo
       const rate = sim === null && shows(`${kind}_pace`) && pct < 100 ? paceRate(kind, l, history, s.now) : null
       if (rate !== null)
-        runs.push({ text: `↗${fmtRate(rate)}%/h `, color: resetsFirst(l.percent, rate, l.resetsAt, s.now) ? T.ok : T.hot })
+        runs.push({ text: `↗${fmtRate(rate)}%/h `, color: T[paceLevel(kind, l.percent, rate, l.resetsAt, s.now)] })
       if (cd && shows(`${kind}_reset`)) runs.push({ text: `↺${cd} `, color: T.dim })
       usage.push(filled({ key: kind, bg, runs, isUsage: true }, kind, pct))
     }

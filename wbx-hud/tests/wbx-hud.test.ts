@@ -1,6 +1,28 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { failureReason, fmtCountdown, fmtTok, modelName, parseGit, pillWidth, ring, withDemo } from '../hooks/register'
+import {
+  failureReason,
+  fmtCountdown,
+  fmtTok,
+  modelName,
+  nextReached,
+  parseGit,
+  pillWidth,
+  ring,
+  withDemo,
+} from '../hooks/register'
+
+describe('nextReached', () => {
+  test("the context holds its level through a dip, so its return does not toast again", async () => {
+    expect(nextReached('context', 2, 0)).toBe(2)
+    expect(nextReached('context', 2, 3)).toBe(3)
+  })
+
+  test("a limit follows the reading, as a new window lowers it", async () => {
+    expect(nextReached('five_hour', 2, 0)).toBe(0)
+    expect(nextReached('seven_day', 0, 3)).toBe(3)
+  })
+})
 
 describe('fmtTok', () => {
   test('plain under 1000, then k and M', async () => {

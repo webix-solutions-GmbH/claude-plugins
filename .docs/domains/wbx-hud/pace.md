@@ -16,6 +16,9 @@ confidence: high
 - **7d** (`this week`): the share used since the week began, from `resetsAt` minus 7 days
   (`windowRate`, `wbx-hud/hooks/sidebar.ts:188`); no history. Shows from the week's second hour.
 - **Forecast** (`forecast`, `wbx-hud/hooks/sidebar.ts:198`): `+12%/h … · full in 4h20m`, or
-  `resets first`. In the bar the pace is green when the window resets first, red when it fills
-  first; off there by default.
+  `resets first`. In the bar the pace is colored by `paceLevel` (`wbx-hud/hooks/sidebar.ts:242`):
+  green when the window resets first; the 7d yellow when it is full only outside work hours
+  (`WORK_HOURS`, Mon–Fri 8–19 local, `hasWorkTime`), as nothing of the work week is lost; red
+  when full within 4 hours (5h) or a day (7d); orange otherwise. Off there by default; the
+  sidebar's pace is dim.
 - After a `/clear` the stored readings go on, not start over ([clear.md](clear.md)).

@@ -20,6 +20,8 @@ confidence: high
 - **Settings are commands, not `/config`**: toggles go in `/wbx-hud` subcommands and the
   settings tab, kept in the store; only the thresholds and the sidebar mode are `userConfig`
   ([user-config.md](user-config.md)).
+- **The store is shared**: one file for every session running at once, so a value that differs
+  per session (the context's toasted level) belongs in `$.state`, not the store.
 - `$.state` starts over on `/clear` (a new session id); the store does not
   ([clear.md](../domains/wbx-hud/clear.md)).
 

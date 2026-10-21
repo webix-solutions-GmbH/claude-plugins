@@ -3,6 +3,11 @@
 What changed in wbx-hud, newest first. The first line of a version is the one the
 "what's new" toast shows after an update.
 
+## 0.11.1 — 2026-10-21
+
+- The context's toast comes once per level and session, not again every 30 seconds while another session runs; a /clear or a compaction lets it come back.
+- The pace in the bar has more colors: the 7d yellow when it runs out only over the weekend (work hours Mon–Fri 8–19), red only when full within a day; the 5h red only when full within 4 hours; orange in between.
+
 ## 0.11.0 — 2026-10-21
 
 - Click the version in the sidebar's title to see the latest changes in a tab beside it.
