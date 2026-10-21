@@ -18,14 +18,6 @@ describes it).
 - Quick-action buttons in the sidebar: `/compact`, theme, demo.
 - `panel` as an alias for `sidebar` in `/wbx-hud show`.
 
-## Not yet confirmed on screen
-
-- The settings tab beside the sidebar: which one is in front.
-- `/rename` from the settings tab's name field.
-- The all-calls view of the tool feed: wheel scroll, button contrast.
-- The `/clear` restore ([clear.md](domains/wbx-hud/clear.md)).
-- The version beside the sidebar's title, and the what's-new toast after an update.
-
 ## Small leftovers
 
 - In `/wbx-hud show|pane`, a failing `setShow` or `$.ui.close` makes the command print nothing.
