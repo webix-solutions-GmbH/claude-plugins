@@ -9,10 +9,10 @@ confidence: high
 
 - **The version** is read from the mod's own `plugin.json`, at
   `${$.plugin.root}/.claude-plugin/plugin.json` with `$.fs.read` (`readVersion`,
-  `wbx-hud/hooks/register.tsx:460`); there is no API for a plugin's own version. It goes into the
+  `wbx-hud/hooks/register.tsx:465`); there is no API for a plugin's own version. It goes into the
   `version` atom (`wbx-hud/hooks/register.tsx:69`), drawn dim beside the sidebar's title
   ([sidebar.md](sidebar.md)). A failed read leaves the title without it.
-- **When**: `readVersion` runs at the end of `restore` (`wbx-hud/hooks/register.tsx:455`), so at
+- **When**: `readVersion` runs at the end of `restore` (`wbx-hud/hooks/register.tsx:460`), so at
   session start, on a reload and after a `/clear` ([clear.md](clear.md)).
 - **The toast**: `wbx-hud <version>: <line>`, the line the first bullet of the version's
   `## <version>` section in `wbx-hud/CHANGELOG.md`, backticks dropped (`whatsNew`,

@@ -445,6 +445,15 @@ describe('sidebar', () => {
     expect((await $.command.run({ command: 'wbx-hud', args: 'pane' } as never)).text).toBe('Sidebar closed.')
     expect(open).toBe(false)
   })
+
+  test('a close the engine refuses says why, from pane and from show', async ($, on) => {
+    setUp(on)
+    on('ui.panes', () => ({ value: [{ id: 'wbx-hud', title: 'HUD', isShown: true, isFocused: false, isPlaced: true }] }))
+    on('ui.close', () => ({ deny: 'pane is pinned' }))
+    await start($)
+    expect((await $.command.run({ command: 'wbx-hud', args: 'pane' } as never)).text).toBe('wbx-hud: pane is pinned')
+    expect((await $.command.run({ command: 'wbx-hud', args: 'show bar' } as never)).text).toBe('wbx-hud: pane is pinned')
+  })
 })
 
 // the engine's side of an agent's life: its spawn, its listing as running, its turn's start and

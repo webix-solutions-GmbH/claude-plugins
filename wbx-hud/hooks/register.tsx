@@ -94,10 +94,10 @@ export const pillWidth = (texts: string[]) =>
   texts.reduce((n, t) => n + [...t].length, 0) + 2 + Math.max(texts.length - 1, 0)
 
 
-const fmtTok = (n: number) =>
+export const fmtTok = (n: number) =>
   n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n)
 
-const fmtCountdown = (resetsAt: string | undefined, now: number) => {
+export const fmtCountdown = (resetsAt: string | undefined, now: number) => {
   if (!resetsAt) return ''
   const diff = Math.floor((Date.parse(resetsAt) - now) / 1000)
   return diff <= 0 ? 'now' : fmtSecs(diff)
@@ -284,6 +284,11 @@ async function pruneAgents($: EngineInterface) {
   const live = new Set(listed.filter(a => !['completed', 'failed', 'killed'].includes(a.status)).map(a => a.id))
   for (const a of await read($, agents)) if (!live.has(a.id) && now - a.startedAt > 60_000) await endAgent($, a.id)
 }
+
+// a failed command's reason without the engine's prefixes: "HooksError: wbx-hud: $.ui.close: pane
+// is pinned" is "pane is pinned"; a timeout has no message
+export const failureReason = (message: string | undefined) =>
+  message?.replace(/^(\w*Error: )?(wbx-hud: )?(\$\.[\w.]+: )?/, '') || 'no answer in time'
 
 // opens the sidebar at a quarter of the terminal, or sets that width anew on an open one
 const openPane = ($: EngineInterface, terminalColumns: number | undefined) =>
@@ -721,7 +726,7 @@ export const register: Register = (on, options) => {
       }
     })
     return { text: 'Sweeping the rings from 0 to 100% over 10 seconds.' }
-  })
+  }).catch(($, e, next) => ({ text: `wbx-hud: ${failureReason(next.error.message)}` })) // a refused open or close says why
 
   // the bar sits under the prompt, above the engine's own hint line, which it keeps
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {

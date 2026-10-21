@@ -1,6 +1,39 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { modelName, parseGit, pillWidth, ring, withDemo } from '../hooks/register'
+import { failureReason, fmtCountdown, fmtTok, modelName, parseGit, pillWidth, ring, withDemo } from '../hooks/register'
+
+describe('fmtTok', () => {
+  test('plain under 1000, then k and M', async () => {
+    expect([0, 999, 1000, 380_000, 1_000_000].map(fmtTok)).toEqual(['0', '999', '1.0k', '380.0k', '1.0M'])
+  })
+})
+
+describe('fmtCountdown', () => {
+  const now = Date.parse('2026-10-19T12:00:00Z')
+
+  test('now at or past the reset, nothing without one', async () => {
+    expect(fmtCountdown('2026-10-19T12:00:00Z', now)).toBe('now')
+    expect(fmtCountdown('2026-10-19T11:00:00Z', now)).toBe('now')
+    expect(fmtCountdown(undefined, now)).toBe('')
+  })
+
+  test('the time left before it', async () => {
+    expect(fmtCountdown('2026-10-19T15:00:00Z', now)).toBe('3h00m')
+  })
+})
+
+describe('failureReason', () => {
+  test("drops the engine's prefixes, keeps the reason", async () => {
+    expect(failureReason('HooksError: wbx-hud: $.ui.close: pane is pinned')).toBe('pane is pinned')
+    expect(failureReason('Error: no: colons: kept')).toBe('no: colons: kept')
+    expect(failureReason('plain')).toBe('plain')
+  })
+
+  test('a timeout without a message', async () => {
+    expect(failureReason(undefined)).toBe('no answer in time')
+    expect(failureReason('HooksError: ')).toBe('no answer in time')
+  })
+})
 
 describe('parseGit', () => {
   test('reads branch, dirty marks and ahead/behind', async () => {

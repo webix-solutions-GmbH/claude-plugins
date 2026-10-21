@@ -20,6 +20,4 @@ describes it).
 
 ## Small leftovers
 
-- In `/wbx-hud show|pane`, a failing `setShow` or `$.ui.close` makes the command print nothing.
-- Untested paths: countdown `now`, token counts under 1000, the cost segment, the demo sweep,
-  the resize reopen, the effort/cwd/model-switch hooks.
+- Untested paths: the demo sweep, the resize reopen, the effort/cwd/model-switch hooks.

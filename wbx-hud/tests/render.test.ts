@@ -19,7 +19,8 @@ const snap: Snapshot = {
 
 // stands in for the engine beneath the mod, then starts the session so the mod
 // reads it the way it does in a real one; a theme given is in the store as a past session left it,
-// as are the other entries given; the toasts shown are pushed to `toasts`
+// as are the other entries given; the toasts shown are pushed to `toasts`; `limits` and `cost`
+// stand in for another account's usage
 const mountAt = async (
   $: Engine,
   on: On,
@@ -29,7 +30,16 @@ const mountAt = async (
     theme,
     stored = [],
     toasts = [],
-  }: { isWorking?: boolean; theme?: string; stored?: [string, unknown][]; toasts?: string[] } = {},
+    limits = snap.limits,
+    cost,
+  }: {
+    isWorking?: boolean
+    theme?: string
+    stored?: [string, unknown][]
+    toasts?: string[]
+    limits?: Snapshot['limits']
+    cost?: number
+  } = {},
 ) => {
   on('ui.toast', (_$, e) => (toasts.push(e.text), { value: undefined }))
   on('session.cwd', () => ({ value: snap.cwd }))
@@ -38,7 +48,8 @@ const mountAt = async (
     value: {
     startedAt: 0,
     context: { tokens: snap.contextTokens, window: 1_000_000, percent: snap.contextPercent },
-    rateLimits: snap.limits.map(l => ({ kind: l.kind, percentUsed: l.percent, resetsAt: l.resetsAt })),
+    rateLimits: limits.map(l => ({ kind: l.kind, percentUsed: l.percent, resetsAt: l.resetsAt })),
+    ...(cost === undefined ? {} : { cost: { usd: cost } }),
     },
   }))
   on('clock.now', () => ({ value: snap.now }))
@@ -81,6 +92,17 @@ describe('bar under the prompt', () => {
     const tree = JSON.stringify(await (await mountAt($, on, 80, ROUND)).drawn())
     expect(pills(tree)).toBe(2)
     expect(tree).toContain('5h')
+  })
+
+  test('without rate limits (an API key) the session cost stands in for them', async ($, on) => {
+    const tree = JSON.stringify(await (await mountAt($, on, 200, { limits: [], cost: 1.42 })).drawn())
+    expect(tree).toContain(' $1.42 ')
+    expect(tree).not.toContain('5h')
+  })
+
+  test('with rate limits the cost is left out', async ($, on) => {
+    const tree = JSON.stringify(await (await mountAt($, on, 200, { cost: 1.42 })).drawn())
+    expect(tree).not.toContain('$1.42')
   })
 
   test('stays visible while a turn runs, the engine hint kept', async ($, on) => {

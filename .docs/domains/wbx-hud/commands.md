@@ -1,14 +1,16 @@
 ---
 title: /wbx-hud
 area: wbx-hud
-verified_commit: 240f2bc
+verified_commit: d477e86
 confidence: high
 ---
 
 # /wbx-hud
 
-Registered at `session.start` (`wbx-hud/hooks/register.tsx:506`), answered by a `command.run`
-hook (`wbx-hud/hooks/register.tsx:637-704`):
+Registered at `session.start` (`wbx-hud/hooks/register.tsx:531`), answered by a `command.run`
+hook (`wbx-hud/hooks/register.tsx:662-729`). A subcommand that fails (an engine refusing to
+open or close a pane, say) answers `wbx-hud: <reason>` from the hook's `.catch`, the engine's
+prefixes stripped (`failureReason`, `wbx-hud/hooks/register.tsx:290`):
 
 | Subcommand | Does |
 |---|---|
@@ -18,7 +20,7 @@ hook (`wbx-hud/hooks/register.tsx:637-704`):
 | `pane` | opens or closes the sidebar; refused while `show` is `bar` |
 | `demo [percent\|off]` | sweeps the context and both limits 0..100% in 10 s (a 100 ms timer), or pins them, or ends it |
 
-**The demo** writes the `demo` atom; drawings use `withDemo` (`wbx-hud/hooks/register.tsx:464`)
+**The demo** writes the `demo` atom; drawings use `withDemo` (`wbx-hud/hooks/register.tsx:489`)
 and mark the bar with a dim `demo` segment. Alerts follow the simulated figures; demo toasts
 read `wbx-hud demo: …`, start afresh each demo (`demoReached`) and leave the real `alerted`
 alone. The pace is hidden during a demo.
