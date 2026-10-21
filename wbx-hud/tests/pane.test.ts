@@ -755,7 +755,7 @@ const mountChanges = ($: Engine) =>
     props: { ...PANE, title: 'Changes' },
   })
 
-const FOUR = [
+const SIX = [
   '# Changelog',
   '',
   '## 1.2.3 — 2026-10-21',
@@ -774,6 +774,14 @@ const FOUR = [
   '',
   '## 1.2.0 — 2026-10-01',
   '',
+  '- Zero.',
+  '',
+  '## 1.1.9',
+  '',
+  '- Nine.',
+  '',
+  '## 1.1.8 — 2026-09-01',
+  '',
   '- Too old to show.',
 ].join('\n')
 
@@ -790,19 +798,19 @@ describe('changes tab', () => {
     expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-changes')).toHaveLength(2)
   })
 
-  test('the newest three versions, every line, a wrapped one joined', async ($, on) => {
+  test('the newest five versions, every line, a wrapped one joined', async ($, on) => {
     const at = setUp(on)
-    at.files['CHANGELOG.md'] = FOUR
+    at.files['CHANGELOG.md'] = SIX
     await start($)
     const drawn = (await (await mountChanges($)).drawn()) as unknown as { children: unknown[] }
     // an empty line above the newest version
     expect(JSON.stringify(drawn.children[0])).toContain('[" "]')
     expect(JSON.stringify(drawn.children[1])).toContain('1.2.3')
     const tree = JSON.stringify(drawn)
-    for (const text of ['1.2.3', '2026-10-21', 'The new thing, wrapped over two lines.', 'Another.', '1.2.2', 'Two.', '1.2.1', 'One.']) {
+    for (const text of ['1.2.3', '2026-10-21', 'The new thing, wrapped over two lines.', 'Another.', '1.2.2', 'Two.', '1.2.1', 'One.', '1.2.0', 'Zero.', '1.1.9', 'Nine.']) {
       expect(tree).toContain(text)
     }
-    expect(tree).not.toContain('1.2.0')
+    expect(tree).not.toContain('1.1.8')
     expect(tree).not.toContain('Too old')
     expect(tree.indexOf('1.2.3')).toBeLessThan(tree.indexOf('1.2.2'))
     expect(tree).toContain('Older versions in CHANGELOG.md.')

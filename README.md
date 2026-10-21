@@ -122,7 +122,7 @@ Agents          [x]    [x]
 Tools           [x]
 ```
 
-**Changes tab**: the version beside `webix HUD`, or `/wbx-hud changes`, opens the latest three
+**Changes tab**: the version beside `webix HUD`, or `/wbx-hud changes`, opens the latest five
 versions of the mod's [changelog](wbx-hud/CHANGELOG.md) beside the sidebar. After an update a
 toast says what's new, once.
 

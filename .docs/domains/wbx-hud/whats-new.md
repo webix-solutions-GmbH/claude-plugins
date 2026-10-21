@@ -20,7 +20,7 @@ confidence: high
   A release adds its section in the same commit as the version bump.
 - **When**: `readVersion` runs at the end of `restore` (`wbx-hud/hooks/register.tsx:473`), so at
   session start, on a reload and after a `/clear` ([clear.md](clear.md)). It keeps the newest
-  three releases (`RECENT`) in the `changes` atom (`wbx-hud/hooks/register.tsx:71`).
+  five releases (`RECENT`) in the `changes` atom (`wbx-hud/hooks/register.tsx:71`).
 - **The changes tab**: a pane, id `wbx-hud-changes` (`CHANGES`, `wbx-hud/hooks/register.tsx:81`),
   opened by the version button or `/wbx-hud changes` beside the sidebar at its width, Escape
   closing it (`openChanges`, `wbx-hud/hooks/register.tsx:311`). Drawn at
