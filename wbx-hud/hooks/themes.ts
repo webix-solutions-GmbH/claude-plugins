@@ -28,6 +28,10 @@ export type Theme = {
   hot: string
   /** text on a segment filled with a level color */
   ink: string
+  /** the panes' title and headings */
+  accent: string
+  /** the line between the sidebar's sections */
+  rule: string
 }
 
 export const THEMES = {
@@ -49,6 +53,8 @@ export const THEMES = {
     alert: '#fe8019',
     hot: '#fb4934',
     ink: '#282828',
+    accent: '#8ec07c', // aqua
+    rule: '#504945',
   },
   // Webix Internal design system, terminal section (Claude Design template)
   webix: {
@@ -70,6 +76,8 @@ export const THEMES = {
     alert: '#E67E4A', // wx-accent-500
     hot: '#E96C6C', // wx-error (dark)
     ink: '#15181D', // wx-n-950
+    accent: '#80BA27', // wx-brand-500
+    rule: '#3A4149', // wx-n-700
   },
 } satisfies Record<string, Theme>
 

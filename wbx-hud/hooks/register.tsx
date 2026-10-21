@@ -79,6 +79,8 @@ const PAD = 1
 // the settings table's item column, up to the sidebar column's heading: the table is 26 cells,
 // as narrow as the docked sidebar gets
 const NAME_W = 14
+// the sidebar opens with it
+const TITLE = 'webix HUD'
 
 // plain Unicode circles, so no Nerd Font is needed: fills in quarters
 const RINGS = ['○', '◔', '◑', '◕', '●']
@@ -878,10 +880,15 @@ export const register: Register = (on, options) => {
     const fg = T.dir.fg
     const heading = (text: string, rest?: RenderElement) => (
       <Text key={`head:${text}`}>
-        <Text color={T.label ?? T.dim} bold>
+        <Text color={T.accent} bold>
           {text}
         </Text>
         {rest}
+      </Text>
+    )
+    const rule = (key: string) => (
+      <Text key={key} color={T.rule}>
+        {'─'.repeat(w)}
       </Text>
     )
     const meter = (pct: number, color: string, key?: string) => {
@@ -1023,7 +1030,7 @@ export const register: Register = (on, options) => {
       ) : null,
     ]
 
-    // each section's rows, an empty line between the ones shown
+    // each section's rows, a rule between the ones shown
     const where = [
       shows('model') ? (
         <Text key="where:model" color={T.model.bg}>
@@ -1104,13 +1111,21 @@ export const register: Register = (on, options) => {
     ]
     const rows = sections
       .filter(([, , isDrawn]) => isDrawn)
-      .flatMap(([name, list], i) => [i > 0 ? <Text key={`${name}:gap`}> </Text> : null, ...list])
+      .flatMap(([name, list], i) => [i > 0 ? rule(`${name}:rule`) : null, ...list])
 
+    // the title on the left, the way to the settings tab on the right
+    const settingsLabel = '≡ settings'
     return (
       <Box flexDirection="column" paddingX={PAD}>
-        <Button key="open:settings" plain onPress={() => void openSettings($, terminalColumns).catch(() => {})}>
-          <Text color={T.dim}>≡ settings</Text>
-        </Button>
+        <Box key="title" flexDirection="row">
+          <Text color={T.accent} bold>
+            {TITLE.padEnd(Math.max(w - settingsLabel.length, TITLE.length + 1))}
+          </Text>
+          <Button key="open:settings" plain onPress={() => void openSettings($, terminalColumns).catch(() => {})}>
+            <Text color={T.dim}>{settingsLabel}</Text>
+          </Button>
+        </Box>
+        {rule('title:rule')}
         {sim !== null ? <Text color={T.dim}>demo: simulated usage</Text> : null}
         {rows}
       </Box>
@@ -1158,7 +1173,7 @@ export const register: Register = (on, options) => {
     const Input = 'Input' in elements ? elements.Input : undefined
     const fg = T.dir.fg
     const heading = (text: string) => (
-      <Text key={`h:${text}`} color={T.label ?? T.dim} bold>
+      <Text key={`h:${text}`} color={T.accent} bold>
         {text}
       </Text>
     )
@@ -1187,7 +1202,7 @@ export const register: Register = (on, options) => {
     }
     const table = [
       <Text key="items:head">
-        <Text color={T.label ?? T.dim} bold>
+        <Text color={T.accent} bold>
           {'ITEMS'.padEnd(NAME_W)}
         </Text>
         <Text color={T.dim}>sidebar  bar</Text>

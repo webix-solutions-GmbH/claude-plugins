@@ -72,6 +72,11 @@ bundled `claude-code.d.ts` of the plugin-authoring skill plus the mod's `hooks`,
 
 ## State of things
 
+- 0.10.0 style: each theme has `accent` (the panes' title `webix HUD` and headings) and `rule`
+  (the `─` lines under the title and between the sidebar's sections, in place of empty lines).
+  A `▌` before the headings was tried and turned down. The mod ships the Claude Code theme
+  `themes/wbx-dark.json` (black `composerSidebarBackground`); the pane's frame color cannot be
+  set by a mod or a theme key.
 - 0.9.1: no classic hooks left (see Gotchas); `/clear` via `session.end`, see 0.7.2 below.
 - 0.9.0 alerts: `levelOf` 0..3 in `hooks/levels.ts`; from `FILL_FROM` (context 1, limits 2)
   the bar segment and sidebar heading fill with the level color and the theme's `ink`; from

@@ -84,10 +84,14 @@ switches at once. The choice is kept in the mod's store, so it holds across sess
 
 | Theme | Look |
 |---|---|
-| `gruvbox-dark` | coralline's colors: teal path, green/orange git, purple model |
-| `webix` (default) | Webix Internal design system: slanted edges, grey path, brand-green git, coral model, dark text on color, a dim slash between the limits |
+| `gruvbox-dark` | coralline's colors: teal path, green/orange git, purple model, aqua headings in the panes |
+| `webix` (default) | Webix Internal design system: slanted edges, grey path, brand-green git, coral model, dark text on color, a dim slash between the limits, brand-green headings in the panes |
 
 A theme is one entry in `wbx-hud/hooks/themes.ts`; the command offers every entry there.
+
+**Claude Code theme**: the mod also brings `wbx dark`, a Claude Code theme (`/theme`) on the
+`dark` base with a black background for the docked sidebar. Pick it in `/theme`; installing the
+mod does not switch it. The sidebar's frame is Claude Code's own and keeps its color.
 
 **Settings tab**: `≡ settings` at the top of the sidebar, or `/wbx-hud settings`, opens a
 second pane beside the sidebar (a `Settings` tab next to `HUD`; Esc or `✕ close` closes it).
@@ -121,17 +125,18 @@ Tools           [x]
 **Sidebar**: a pane with the bar's figures in full and what the bar has no room for.
 
 ```
-≡ settings
+webix HUD             ≡ settings
+────────────────────────────────
 ◆ Opus 5.5 (1M) · high
 ⌂ C:/Development/…/mods
 ⎇ main !
   3 files changed  +84 −12
-
+────────────────────────────────
 CONTEXT  ◔ 23%  231.0k / 1.0M
 ▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
 Messages      172.0k  ██████████
 System prompt  12.0k  ▊
-
+────────────────────────────────
 LIMITS
 5h ◑ 48%  ↺2h14m
 ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱
@@ -140,11 +145,11 @@ LIMITS
 7d ◔ 21%  ↺4d06h
 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
 +0.3%/h this week · resets first
-
+────────────────────────────────
 AGENTS  click one to view it
 ● Explore find hooks…  ◔ 21% 41.0k 1:42
 ● general-purpose…      ○ 4% 8.2k 0:20
-
+────────────────────────────────
 TOOLS  click one for all of it
 ✓ Bash git status            0.4s
 ✓ Edit register.tsx          0.1s

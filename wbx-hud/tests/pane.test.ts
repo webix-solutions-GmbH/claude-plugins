@@ -278,6 +278,23 @@ describe('sidebar', () => {
     expect(rows[at7d - 1]).toBe('[" "]')
   })
 
+  test('opens with the title, colors the headings and rules between the sections', async ($, on) => {
+    setUp(on)
+    await start($)
+    const tree = (await (await mountPane($)).drawn()) as unknown as { children: { children?: unknown[] }[] }
+    const rows = tree.children.map(r => JSON.stringify(r))
+    expect(rows[0]).toContain('webix HUD')
+    expect(rows[0]).toContain('≡ settings')
+    expect(rows[0]).toContain('#80BA27')
+    expect(rows[1]).toContain('─')
+    const text = rows.join('\n')
+    for (const name of ['LIMITS', 'TOOLS']) {
+      expect(text).toContain(`{"color":"#80BA27","bold":true},"children":["${name}"]`)
+    }
+    // where, context, limits, tools: three rules between them, one under the title
+    expect(rows.filter(r => r.includes('──')).length).toBe(4)
+  })
+
   test('opens at a quarter of the terminal once the bar has read its width', async ($, on) => {
     const at = setUp(on)
     await start($)

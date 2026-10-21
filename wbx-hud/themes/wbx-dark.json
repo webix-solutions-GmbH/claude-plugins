@@ -1,0 +1,5 @@
+{
+  "name": "wbx dark",
+  "base": "dark",
+  "overrides": { "composerSidebarBackground": "#000000" }
+}
