@@ -3,15 +3,12 @@
 Open ideas for wbx-hud, none started. Strike an item when it ships (the feature's note then
 describes it).
 
-## Next: releases on GitHub
-
-The changelog and the what's-new toast shipped in 0.10.1 ([whats-new.md](domains/wbx-hud/whats-new.md)).
-
-- If outsiders follow the repo: GitHub Releases from tags `wbx-hud--v<version>`, made by a
-  GitHub Actions workflow on the tag push (`gh` is preinstalled on Actions runners), the text
-  taken from the changelog section. Pushing the tag is then the only manual step.
-
 ## Ideas
+
+- GitHub Releases, only if outsiders follow the repo (kept small on purpose until then): tags
+  `wbx-hud--v<version>`, a GitHub Actions workflow on the tag push makes the release with `gh`
+  (preinstalled on Actions runners), the text taken from the version's section in
+  `wbx-hud/CHANGELOG.md` ([whats-new.md](domains/wbx-hud/whats-new.md)).
 
 - Cost per turn (`cost.usd` between `turn.start` and `turn.complete`), the last turns and the
   session average. Doubtful: the cost was taken out of the sidebar once.
