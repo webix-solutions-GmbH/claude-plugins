@@ -7,6 +7,7 @@ What changed in wbx-hud, newest first. The first line of a version is the one th
 
 - Click the version in the sidebar's title to see the latest changes in a tab beside it.
 - /wbx-hud changes opens the same tab.
+- An empty line above the bar parts it from the line over it.
 
 ## 0.10.2 — 2026-10-21
 

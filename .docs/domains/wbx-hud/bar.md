@@ -1,14 +1,15 @@
 ---
 title: The bar
 area: wbx-hud
-verified_commit: 240f2bc
+verified_commit: 33e35cd
 confidence: high
 ---
 
 # The bar
 
 A `PromptHint` render hook that returns the bar above `await next(e)`, the engine's hint line
-(`wbx-hud/hooks/register.tsx:707`).
+(`wbx-hud/hooks/register.tsx:753`), with an empty line above it (`marginTop={1}`) that parts it
+from the prompt or the mode line.
 
 - **Segments**: path (shortened past four levels), git (branch or short hash, `+ ! ?` marks,
   `⇡ ⇣`), model with effort, context ring with percentage and tokens, 5h and 7d rings with reset

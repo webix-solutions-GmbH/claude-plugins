@@ -88,6 +88,11 @@ describe('bar under the prompt', () => {
     expect(tree.indexOf('Opus 5.5 (1M)')).toBeLessThan(tree.indexOf('esc to interrupt'))
   })
 
+  test('an empty line above the bar', async ($, on) => {
+    const tree = (await (await mountAt($, on, 200, ROUND)).drawn()) as unknown as { props: { marginTop?: number } }
+    expect(tree.props.marginTop).toBe(1)
+  })
+
   test('two lines when narrow', async ($, on) => {
     const tree = JSON.stringify(await (await mountAt($, on, 80, ROUND)).drawn())
     expect(pills(tree)).toBe(2)

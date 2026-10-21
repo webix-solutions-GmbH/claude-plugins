@@ -883,8 +883,9 @@ export const register: Register = (on, options) => {
     // everything switched off: the hint alone
     if (!all.length) return hint
     const fits = pillWidth(all.map(seg => seg.runs.map(r => r.text).join(''))) <= (e.viewport?.columns ?? Infinity)
+    // an empty line parts the bar from what is drawn above it
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" marginTop={1}>
         {!usage.length || !where.length || fits ? pill(all) : [pill(where), pill(usage)]}
         {hint}
       </Box>
