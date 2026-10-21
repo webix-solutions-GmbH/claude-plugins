@@ -14,7 +14,13 @@ describes it).
   session average. Doubtful: the cost was taken out of the sidebar once.
 - Claude's own changes this session: only Edit/Write calls, not the user's edits.
 - Recent commits (the last 3 of `git log`) and the stash count.
-- Quick-action buttons in the sidebar: `/compact`, theme, demo.
+- Quick actions where they matter, not a toolbar; each an items-table row, run via
+  `$.command.run` once idle as the rename is. Need not yet clear:
+  - `compact` and `clear` in the context section from orange, the alert's hint made a button;
+    `clear` asks first.
+  - The model line opens `/model`; a click on the effort steps through the levels.
+  - A click on a limit opens `/usage`.
+  - Not theme or demo: the settings tab has the theme, the demo is for developing.
 - `panel` as an alias for `sidebar` in `/wbx-hud show`.
 
 ## Small leftovers
