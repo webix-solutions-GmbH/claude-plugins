@@ -296,7 +296,7 @@ describe('sidebar', () => {
     const tree = (await (await mountPane($)).drawn()) as unknown as { children: { children?: unknown[] }[] }
     const rows = tree.children.map(r => JSON.stringify(r))
     expect(rows[0]).toContain('webix HUD')
-    expect(rows[0]).toContain(' 1.2.3')
+    expect(rows[0]).toContain('"children":["1.2.3"]')
     expect(rows[0]).toContain('≡ settings')
     expect(rows[0]).toContain('#80BA27')
     expect(rows[1]).toContain('─')
@@ -783,6 +783,8 @@ describe('changes tab', () => {
     await start($)
     const sidebar = await mountPane($)
     const ver = await sidebar.find({ type: 'Button', text: /1\.2\.3/ })
+    // the button is the version alone, the space before it outside
+    expect(JSON.stringify(ver)).toContain('"children":["1.2.3"]')
     await sidebar.press({ key: ver!.key! })
     expect((await $.command.run({ command: 'wbx-hud', args: 'changes' } as never)).text).toBe('Changes opened.')
     expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-changes')).toHaveLength(2)
@@ -792,7 +794,11 @@ describe('changes tab', () => {
     const at = setUp(on)
     at.files['CHANGELOG.md'] = FOUR
     await start($)
-    const tree = JSON.stringify(await (await mountChanges($)).drawn())
+    const drawn = (await (await mountChanges($)).drawn()) as unknown as { children: unknown[] }
+    // an empty line above the newest version
+    expect(JSON.stringify(drawn.children[0])).toContain('[" "]')
+    expect(JSON.stringify(drawn.children[1])).toContain('1.2.3')
+    const tree = JSON.stringify(drawn)
     for (const text of ['1.2.3', '2026-10-21', 'The new thing, wrapped over two lines.', 'Another.', '1.2.2', 'Two.', '1.2.1', 'One.']) {
       expect(tree).toContain(text)
     }

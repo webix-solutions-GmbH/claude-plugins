@@ -1171,9 +1171,10 @@ export const register: Register = (on, options) => {
           <Text color={T.accent} bold>
             {TITLE}
           </Text>
-          {verLabel ? (
+          {ver !== null ? <Text> </Text> : null}
+          {ver !== null ? (
             <Button key="open:changes" plain onPress={() => void openChanges($, terminalColumns).catch(() => {})}>
-              <Text color={T.dim}>{verLabel}</Text>
+              <Text color={T.dim}>{ver}</Text>
             </Button>
           ) : null}
           <Text>{' '.repeat(space)}</Text>
@@ -1347,6 +1348,7 @@ export const register: Register = (on, options) => {
     const fg = T.dir.fg
     return (
       <Box flexDirection="column" paddingX={PAD}>
+        <Text key="gap:top"> </Text>
         {releases.length ? null : <Text color={T.dim}>No changelog found.</Text>}
         {releases.flatMap(r => [
           <Text key={`h:${r.version}`}>
