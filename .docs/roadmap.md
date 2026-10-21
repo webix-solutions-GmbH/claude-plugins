@@ -12,7 +12,6 @@ describes it).
 
 - Cost per turn (`cost.usd` between `turn.start` and `turn.complete`), the last turns and the
   session average. Doubtful: the cost was taken out of the sidebar once.
-- Turn timer and turn count (`$.session.turns()`).
 - Claude's own changes this session: only Edit/Write calls, not the user's edits.
 - Recent commits (the last 3 of `git log`) and the stash count.
 - Quick-action buttons in the sidebar: `/compact`, theme, demo.
