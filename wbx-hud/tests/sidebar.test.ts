@@ -13,7 +13,6 @@ import {
   fmtElapsed,
   fmtMs,
   forecast,
-  hasWorkTime,
   inputTokens,
   isOn,
   paceLevel,
@@ -26,6 +25,7 @@ import {
   toolName,
   WEEK_MS,
   windowRate,
+  workTimeIn,
 } from '../hooks/sidebar'
 
 const MIN = 60_000
@@ -209,6 +209,12 @@ describe('paceLevel', () => {
     expect(week(local(19, 10), 106, local(26, 7))).toBe('warn')
   })
 
+  test('the 7d yellow while it loses at most 2 work hours, orange past them', async () => {
+    // full next Wednesday at about 2:00, resets at 9:00 (1 work hour lost), then at 11:00 (3)
+    expect(week(local(21, 14), 156, local(28, 9))).toBe('warn')
+    expect(week(local(21, 14), 156, local(28, 11))).toBe('alert')
+  })
+
   test('the 7d orange when work time is lost, red when full within a day', async () => {
     // full Wednesday 10:00 / Monday 20:00, resets Thursday 10:00
     expect(week(local(19, 10), 48, local(22, 10))).toBe('alert')
@@ -221,14 +227,15 @@ describe('paceLevel', () => {
   })
 })
 
-describe('hasWorkTime', () => {
+describe('workTimeIn', () => {
+  const H = 3_600_000
   const local = (day: number, hour: number) => new Date(2026, 9, day, hour).getTime()
 
   test('weekdays from 8 to 19, no weekend', async () => {
-    expect(hasWorkTime(local(19, 19), local(20, 8))).toBe(false)
-    expect(hasWorkTime(local(19, 18), local(19, 20))).toBe(true)
-    expect(hasWorkTime(local(23, 19), local(26, 8))).toBe(false)
-    expect(hasWorkTime(local(23, 19), local(26, 9))).toBe(true)
+    expect(workTimeIn(local(19, 19), local(20, 8))).toBe(0)
+    expect(workTimeIn(local(19, 18), local(19, 20))).toBe(H)
+    expect(workTimeIn(local(23, 19), local(26, 8))).toBe(0)
+    expect(workTimeIn(local(23, 18), local(26, 9))).toBe(2 * H)
   })
 })
 

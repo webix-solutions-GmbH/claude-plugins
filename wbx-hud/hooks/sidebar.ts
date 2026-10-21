@@ -220,25 +220,28 @@ export const resetsFirst = (pct: number, rate: number, resetsAt: string | undefi
 
 // work hours, local time, Monday to Friday: a 7-day limit full outside them loses no work
 export const WORK_HOURS = { from: 8, to: 19 }
+// the work time a 7-day limit may lose and still be yellow: a forecast days ahead is not exact
+export const WORK_ALLOWANCE_MS = 2 * 3_600_000
 
-// whether [from, to) holds any work hour
-export const hasWorkTime = (from: number, to: number) => {
+// the work time in [from, to), in milliseconds
+export const workTimeIn = (from: number, to: number) => {
+  let ms = 0
   const day = new Date(from)
   day.setHours(0, 0, 0, 0)
   for (; day.getTime() < to; day.setDate(day.getDate() + 1)) {
     if (day.getDay() === 0 || day.getDay() === 6) continue
     const start = new Date(day).setHours(WORK_HOURS.from)
     const end = new Date(day).setHours(WORK_HOURS.to)
-    if (start < to && end > from) return true
+    ms += Math.max(0, Math.min(end, to) - Math.max(start, from))
   }
-  return false
+  return ms
 }
 
 // how soon a full limit is red: the 5h's within hours, the 7d's within a day
 const HOT_WITHIN_MS: Record<string, number> = { five_hour: 4 * 3_600_000, seven_day: 86_400_000 }
 
-// the pace's level: ok while the limit resets before it would fill; warn for a 7d limit full only
-// over a weekend; hot when full soon; alert otherwise
+// the pace's level: ok while the limit resets before it would fill; warn for a 7d limit that loses
+// at most the allowance of work time; hot when full soon; alert otherwise
 export const paceLevel = (
   kind: string,
   pct: number,
@@ -249,7 +252,7 @@ export const paceLevel = (
   if (resetsFirst(pct, rate, resetsAt, now)) return 'ok'
   const fullAt = now + ((100 - pct) / rate) * 3_600_000
   const reset = resetsAt ? Date.parse(resetsAt) : NaN
-  if (kind === 'seven_day' && Number.isFinite(reset) && !hasWorkTime(fullAt, reset)) return 'warn'
+  if (kind === 'seven_day' && Number.isFinite(reset) && workTimeIn(fullAt, reset) <= WORK_ALLOWANCE_MS) return 'warn'
   return fullAt - now < (HOT_WITHIN_MS[kind] ?? 0) ? 'hot' : 'alert'
 }
 

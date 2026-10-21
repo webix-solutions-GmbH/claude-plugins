@@ -3,6 +3,10 @@
 What changed in wbx-hud, newest first. The first line of a version is the one the
 "what's new" toast shows after an update.
 
+## 0.11.2 — 2026-10-21
+
+- The 7d pace stays yellow while it would cost at most 2 work hours before the reset, not orange for any.
+
 ## 0.11.1 — 2026-10-21
 
 - The context's toast comes once per level and session, not again every 30 seconds while another session runs; a /clear or a compaction lets it come back.
