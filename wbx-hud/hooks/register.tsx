@@ -33,6 +33,7 @@ import {
   WEEK_MS,
   windowRate,
 } from './sidebar'
+import { isUpdate, manifestVersion, whatsNew } from './changelog'
 import { isThemeName, THEMES, themeOf } from './themes'
 import type { ThemeName } from './themes'
 
@@ -64,6 +65,8 @@ const alertsOff = atom({ plugin: 'wbx-hud', key: 'alertsOff' } as const, [])
 // the agents whose turn runs, and the clock their elapsed time is drawn from
 const agents = atom({ plugin: 'wbx-hud', key: 'agents' } as const, [])
 const tick = atom({ plugin: 'wbx-hud', key: 'tick' } as const, 0)
+// the mod's version as its plugin.json states it, beside the sidebar's title
+const version = atom({ plugin: 'wbx-hud', key: 'version' } as const, null)
 // ticks each second while agents run
 let ticker: Timer | undefined
 // agents whose turn ended, so a late spawn answer does not bring one back; a new turn does
@@ -449,6 +452,23 @@ async function restore($: EngineInterface, base: Record<Area, Levels>) {
   const last = await $.store.get('effort')
   if (typeof last === 'string' && last) await update($, effort, () => last)
   await readEffort($).catch(() => {})
+  await readVersion($).catch(() => {})
+}
+
+// the version from plugin.json, for the title; after an update, its line of CHANGELOG.md in a
+// toast, once: the version toasted is kept in the store
+async function readVersion($: EngineInterface) {
+  const v = manifestVersion(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))
+  if (v === null) return
+  await update($, version, () => v)
+  const seen = await $.store.get('seenVersion')
+  if (seen === v) return
+  // burn is stored by every reading, and restore runs before the first: a new install has none
+  if (isUpdate(seen, v, (await $.store.get('burn')) !== undefined)) {
+    const news = whatsNew(await $.fs.read(`${$.plugin.root}/CHANGELOG.md`).catch(() => ''), v)
+    await $.ui.toast(news ? `wbx-hud ${v}: ${news}` : `wbx-hud updated to ${v}`)
+  }
+  await $.store.set('seenVersion', v)
 }
 
 // the model's name with the effort beside it, when there is one and it is wanted
@@ -1115,11 +1135,16 @@ export const register: Register = (on, options) => {
 
     // the title on the left, the way to the settings tab on the right
     const settingsLabel = '≡ settings'
+    const ver = await read($, version)
+    const verLabel = ver === null ? '' : ` ${ver}`
     return (
       <Box flexDirection="column" paddingX={PAD}>
         <Box key="title" flexDirection="row">
           <Text color={T.accent} bold>
-            {TITLE.padEnd(Math.max(w - settingsLabel.length, TITLE.length + 1))}
+            {TITLE}
+          </Text>
+          <Text color={T.dim}>
+            {verLabel.padEnd(Math.max(w - settingsLabel.length - TITLE.length, verLabel.length + 1))}
           </Text>
           <Button key="open:settings" plain onPress={() => void openSettings($, terminalColumns).catch(() => {})}>
             <Text color={T.dim}>{settingsLabel}</Text>

@@ -22,7 +22,19 @@ const setUp = (on: On) => {
     isUsageDown: false,
     opens: [] as { columns?: number }[],
     store: new Map<string, unknown>(),
+    // the mod's own files, by the end of their path, and the toasts shown
+    files: {
+      'plugin.json': '{ "name": "wbx-hud", "version": "1.2.3" }',
+      'CHANGELOG.md': '# Changelog\n\n## 1.2.3 — 2026-10-21\n\n- The `new` thing.\n- Another.\n\n## 1.2.2\n\n- Old.\n',
+    } as Record<string, string>,
+    toasts: [] as string[],
   }
+  on('fs.read', (_$, e) => {
+    const name = Object.keys(at.files).find(n => e.path.replaceAll('\\', '/').endsWith(`/${n}`))
+    if (name === undefined) throw new Error(`ENOENT: ${e.path}`)
+    return { value: at.files[name] ?? '' }
+  })
+  on('ui.toast', (_$, e) => (at.toasts.push(e.text), { value: undefined }))
   on('session.cwd', () => ({ value: CWD }))
   on('session.model', () => ({ value: 'claude-opus-5-5[1m]' }))
   on('session.usage', () => {
@@ -284,6 +296,7 @@ describe('sidebar', () => {
     const tree = (await (await mountPane($)).drawn()) as unknown as { children: { children?: unknown[] }[] }
     const rows = tree.children.map(r => JSON.stringify(r))
     expect(rows[0]).toContain('webix HUD')
+    expect(rows[0]).toContain(' 1.2.3')
     expect(rows[0]).toContain('≡ settings')
     expect(rows[0]).toContain('#80BA27')
     expect(rows[1]).toContain('─')
@@ -293,6 +306,46 @@ describe('sidebar', () => {
     }
     // where, context, limits, tools: three rules between them, one under the title
     expect(rows.filter(r => r.includes('──')).length).toBe(4)
+  })
+
+  test('the title without a version when plugin.json cannot be read', async ($, on) => {
+    const at = setUp(on)
+    delete at.files['plugin.json']
+    await start($)
+    const tree = (await (await mountPane($)).drawn()) as unknown as { children: unknown[] }
+    const title = JSON.stringify(tree.children[0])
+    expect(title).toContain('webix HUD')
+    expect(title).not.toContain('1.2.3')
+    expect(at.toasts).toEqual([])
+  })
+
+  test("after an update, what's new in a toast, once", async ($, on) => {
+    const at = setUp(on)
+    at.store.set('seenVersion', '1.2.2')
+    await start($)
+    expect(at.toasts).toEqual(['wbx-hud 1.2.3: The new thing.'])
+    expect(at.store.get('seenVersion')).toBe('1.2.3')
+    await start($)
+    expect(at.toasts).toHaveLength(1)
+  })
+
+  test('an install of before the version was kept toasts too; a new install stays quiet', async ($, on) => {
+    const at = setUp(on)
+    await start($)
+    expect(at.toasts).toEqual([])
+    expect(at.store.get('seenVersion')).toBe('1.2.3')
+    at.store.delete('seenVersion')
+    // burn is stored by the first session's reading
+    await start($)
+    expect(at.toasts).toEqual(['wbx-hud 1.2.3: The new thing.'])
+  })
+
+  test('an update without a changelog section names the version', async ($, on) => {
+    const at = setUp(on)
+    at.store.set('seenVersion', '1.2.2')
+    delete at.files['CHANGELOG.md']
+    await start($)
+    expect(at.toasts).toEqual(['wbx-hud updated to 1.2.3'])
   })
 
   test('opens at a quarter of the terminal once the bar has read its width', async ($, on) => {
@@ -497,10 +550,8 @@ describe('agents', () => {
   })
 
   test('a click the engine refuses says why in a toast', async ($, on) => {
-    setUp(on)
+    const { toasts } = setUp(on)
     agentEngine(on, 'a6', 'Explore', 'find hooks', 'running', 'no row in the tasks list')
-    const toasts: string[] = []
-    on('ui.toast', (_$, e) => (toasts.push(e.text), { value: undefined }))
     await start($)
     await spawn($)
     const pane = await mountPane($)
@@ -651,8 +702,7 @@ describe('settings tab', () => {
 
   test('thresholds entered there apply at once and are kept; empty goes back, nonsense is refused', async ($, on) => {
     const at = setUp(on)
-    const toasts: string[] = []
-    on('ui.toast', (_$, e) => (toasts.push(e.text), { value: undefined }))
+    const { toasts } = at
     await start($)
     const ui = await mountSettings($)
     // context 23% is yellow by default; from 10,20,40 it is orange

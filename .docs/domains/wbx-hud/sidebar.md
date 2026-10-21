@@ -1,7 +1,7 @@
 ---
 title: The sidebar
 area: wbx-hud
-verified_commit: 240f2bc
+verified_commit: 92d1814
 confidence: high
 ---
 
@@ -10,7 +10,8 @@ confidence: high
 A pane with id `wbx-hud`, title `HUD` (`wbx-hud/hooks/register.tsx:74,286`), drawn by the
 render hook at `wbx-hud/hooks/register.tsx:849`.
 
-- **Layout**: the title row (`webix HUD` in the theme's `accent`, `≡ settings` on the right),
+- **Layout**: the title row (`webix HUD` in the theme's `accent`, the mod's version dim beside
+  it ([whats-new.md](whats-new.md)), `≡ settings` on the right),
   a rule, then the sections where, context, limits, agents, tools, a `─` rule in the theme's
   `rule` color between those shown. Headings are bold in `accent`. Padding one column each side
   (`PAD`).

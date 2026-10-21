@@ -17,3 +17,4 @@ in `hooks/sidebar.ts`, `hooks/levels.ts`, `hooks/themes.ts`; atoms declared in `
 | [agents.md](agents.md) | running subagents in the sidebar and the bar |
 | [effort.md](effort.md) | where the effort beside the model comes from |
 | [clear.md](clear.md) | getting the settings and readings back after `/clear` |
+| [whats-new.md](whats-new.md) | the version beside the title, the changelog and the toast after an update |

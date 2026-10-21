@@ -94,6 +94,7 @@ declare module 'claude-code' {
     /** alertsOff: the alerts switched off in the settings tab; persisted under "alertsOff" */
     /** agents: the agents whose turn runs, oldest first; one leaves when its turn ends */
     /** tick: the clock as of the last second while agents run, for their elapsed time */
+    /** version: the mod's version from its plugin.json, null until read; the last one toasted is the store's "seenVersion" */
     'wbx-hud': {
       snap: Snapshot | null
       demo: number | null
@@ -109,6 +110,7 @@ declare module 'claude-code' {
       alertsOff: Alert[]
       agents: AgentRun[]
       tick: number
+      version: string | null
     }
   }
 }

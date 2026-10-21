@@ -12,7 +12,8 @@ confidence: high
   (`LICENSE`). Each mod has an entry `{ name, source: "./<mod>", description }`.
 - **Users install** with `/plugin install <mod> --marketplace webix-solutions-GmbH/claude-plugins`,
   or `/plugin install <mod>@webix` once the marketplace is added; the id is then `<mod>@webix`.
-- **A release** is a push to `main` with the mod's `version` bumped in its `plugin.json`;
+- **A release** is a push to `main` with the mod's `version` bumped in its `plugin.json` and a
+  section for it in the mod's `CHANGELOG.md` ([whats-new.md](../domains/wbx-hud/whats-new.md));
   installs pick it up at Claude Code's next update check (or `/plugin marketplace update webix`).
   `main` is protected by a ruleset: no force push, no deletion.
 - **While developing**, the mod folders are listed in `CLAUDE_CODE_PLUGIN_DIRS` (the `env` block
