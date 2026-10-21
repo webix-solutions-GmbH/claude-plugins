@@ -10,7 +10,7 @@ confidence: high
 A second pane, id `wbx-hud-settings` (`wbx-hud/hooks/register.tsx:75`), opened by
 `/wbx-hud settings` or the sidebar's `≡ settings`, beside the sidebar at its width; drawn at
 `wbx-hud/hooks/register.tsx:1163`; opened, it is the tab in front (seen in the terminal,
-2026-10-21). Every choice is kept in the store.
+2026-10-21). Every choice is kept in the store. An empty line opens it, as it parts its sections.
 
 - **Theme** and **show**: radio rows.
 - **Items table**: an item per row (`ITEMS`, `wbx-hud/hooks/sidebar.ts:18`), a sidebar and a bar

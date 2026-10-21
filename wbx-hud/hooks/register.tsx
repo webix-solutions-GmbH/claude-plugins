@@ -1276,6 +1276,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column" paddingX={PAD}>
+        {gap('top')}
         {heading('THEME')}
         {(Object.keys(THEMES) as ThemeName[]).map(name =>
           choice(`theme:${name}`, name === current, name, () => void setTheme($, name).catch(() => {})),
@@ -1367,6 +1368,7 @@ export const register: Register = (on, options) => {
           <Text key={`gap:${r.version}`}> </Text>,
         ])}
         {releases.length ? <Text color={T.dim}>Older versions in CHANGELOG.md.</Text> : null}
+        <Text key="gap:close"> </Text>
         <Button key="close" plain onPress={() => void $.ui.close({ id: CHANGES }).catch(() => {})}>
           <Text color={T.dim}>✕ close (Esc)</Text>
         </Button>

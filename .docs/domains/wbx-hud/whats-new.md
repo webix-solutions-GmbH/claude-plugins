@@ -25,7 +25,7 @@ confidence: high
   opened by the version button or `/wbx-hud changes` beside the sidebar at its width, Escape
   closing it (`openChanges`, `wbx-hud/hooks/register.tsx:311`). Drawn at
   `wbx-hud/hooks/register.tsx:1344`: an empty line, then per release the version in `accent`, the date dim, each line
-  after a dim `· `; then "Older versions in CHANGELOG.md." and a close button. Without a
+  after a dim `· `; then "Older versions in CHANGELOG.md.", an empty line and a close button. Without a
   changelog it says "No changelog found."
 - **The toast**: `wbx-hud <version>: <line>`, the version's first line; without one,
   `wbx-hud updated to <version>`.
