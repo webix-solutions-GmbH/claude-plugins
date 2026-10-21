@@ -122,10 +122,14 @@ Agents          [x]    [x]
 Tools           [x]
 ```
 
+**Changes tab**: the version beside `webix HUD`, or `/wbx-hud changes`, opens the latest three
+versions of the mod's [changelog](wbx-hud/CHANGELOG.md) beside the sidebar. After an update a
+toast says what's new, once.
+
 **Sidebar**: a pane with the bar's figures in full and what the bar has no room for.
 
 ```
-webix HUD             ≡ settings
+webix HUD 0.11.0      ≡ settings
 ────────────────────────────────
 ◆ Opus 5.5 (1M) · high
 ⌂ C:/Development/…/mods

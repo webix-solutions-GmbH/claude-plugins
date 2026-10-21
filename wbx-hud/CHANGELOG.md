@@ -3,6 +3,11 @@
 What changed in wbx-hud, newest first. The first line of a version is the one the
 "what's new" toast shows after an update.
 
+## 0.11.0 — 2026-10-21
+
+- Click the version in the sidebar's title to see the latest changes in a tab beside it.
+- /wbx-hud changes opens the same tab.
+
 ## 0.10.2 — 2026-10-21
 
 - /wbx-hud says why when the sidebar can't be opened or closed, instead of nothing.

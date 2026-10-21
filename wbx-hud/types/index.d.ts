@@ -78,6 +78,8 @@ export type AgentRun = {
   /** input tokens of its last request, cache included: its context; absent before one */
   contextTokens?: number
 }
+/** a version's section of CHANGELOG.md: its lines, a wrapped bullet joined into one */
+export type Release = { version: string; date: string; lines: string[] }
 
 declare module 'claude-code' {
   interface PluginState {
@@ -95,6 +97,7 @@ declare module 'claude-code' {
     /** agents: the agents whose turn runs, oldest first; one leaves when its turn ends */
     /** tick: the clock as of the last second while agents run, for their elapsed time */
     /** version: the mod's version from its plugin.json, null until read; the last one toasted is the store's "seenVersion" */
+    /** changes: the newest versions of CHANGELOG.md, for the changes tab; empty until read */
     'wbx-hud': {
       snap: Snapshot | null
       demo: number | null
@@ -111,6 +114,7 @@ declare module 'claude-code' {
       agents: AgentRun[]
       tick: number
       version: string | null
+      changes: Release[]
     }
   }
 }

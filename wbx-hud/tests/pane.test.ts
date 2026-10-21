@@ -745,3 +745,68 @@ describe('settings tab', () => {
     expect(renamed).toEqual(['wbx-hud settings'])
   })
 })
+
+const mountChanges = ($: Engine) =>
+  $.ui.mount({
+    plugin: 'wbx-hud',
+    surface: 'terminal',
+    component: 'Pane',
+    requestId: 'wbx-hud-changes',
+    props: { ...PANE, title: 'Changes' },
+  })
+
+const FOUR = [
+  '# Changelog',
+  '',
+  '## 1.2.3 — 2026-10-21',
+  '',
+  '- The `new` thing, wrapped',
+  '  over two lines.',
+  '- Another.',
+  '',
+  '## 1.2.2 — 2026-10-20',
+  '',
+  '- Two.',
+  '',
+  '## 1.2.1',
+  '',
+  '- One.',
+  '',
+  '## 1.2.0 — 2026-10-01',
+  '',
+  '- Too old to show.',
+].join('\n')
+
+describe('changes tab', () => {
+  test('opens from the version in the title and from /wbx-hud changes', async ($, on) => {
+    const at = setUp(on)
+    await start($)
+    const sidebar = await mountPane($)
+    const ver = await sidebar.find({ type: 'Button', text: /1\.2\.3/ })
+    await sidebar.press({ key: ver!.key! })
+    expect((await $.command.run({ command: 'wbx-hud', args: 'changes' } as never)).text).toBe('Changes opened.')
+    expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-changes')).toHaveLength(2)
+  })
+
+  test('the newest three versions, every line, a wrapped one joined', async ($, on) => {
+    const at = setUp(on)
+    at.files['CHANGELOG.md'] = FOUR
+    await start($)
+    const tree = JSON.stringify(await (await mountChanges($)).drawn())
+    for (const text of ['1.2.3', '2026-10-21', 'The new thing, wrapped over two lines.', 'Another.', '1.2.2', 'Two.', '1.2.1', 'One.']) {
+      expect(tree).toContain(text)
+    }
+    expect(tree).not.toContain('1.2.0')
+    expect(tree).not.toContain('Too old')
+    expect(tree.indexOf('1.2.3')).toBeLessThan(tree.indexOf('1.2.2'))
+    expect(tree).toContain('Older versions in CHANGELOG.md.')
+  })
+
+  test('without a changelog it says so', async ($, on) => {
+    const at = setUp(on)
+    delete at.files['CHANGELOG.md']
+    await start($)
+    const tree = JSON.stringify(await (await mountChanges($)).drawn())
+    expect(tree).toContain('No changelog found.')
+  })
+})

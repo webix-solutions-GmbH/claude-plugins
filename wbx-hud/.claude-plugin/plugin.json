@@ -1,6 +1,6 @@
 {
   "name": "wbx-hud",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "description": "Native status bar under the prompt and a sidebar: path, git, model, context, rate limits with their pace, running agents, tool feed",
   "author": {
     "name": "Heiko Siegrist"

@@ -1,20 +1,23 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { isUpdate, manifestVersion, whatsNew } from '../hooks/changelog'
+import { isUpdate, manifestVersion, parseChangelog } from '../hooks/changelog'
 
 const LOG = [
   '# Changelog',
   '',
+  'What changed, newest first.',
+  '',
   '## 0.10.1 — 2026-10-21',
   '',
-  '- A toast says what `changed`.',
+  '- A toast says what `changed`,',
+  '  wrapped.',
   '- This changelog.',
   '',
   '## 0.10.0',
   '',
   '* Themed panes.',
   '',
-  '## 0.9.9',
+  '## 0.9.9 - 2026-10-01',
   '',
   'Prose only.',
 ].join('\r\n')
@@ -32,15 +35,18 @@ describe('manifestVersion', () => {
   })
 })
 
-describe('whatsNew', () => {
-  test("the first bullet of the version's section, backticks dropped", async () => {
-    expect(whatsNew(LOG, '0.10.1')).toBe('A toast says what changed.')
-    expect(whatsNew(LOG, '0.10.0')).toBe('Themed panes.')
+describe('parseChangelog', () => {
+  test('a release per section, newest first, wrapped bullets joined, backticks dropped', async () => {
+    expect(parseChangelog(LOG)).toEqual([
+      { version: '0.10.1', date: '2026-10-21', lines: ['A toast says what changed, wrapped.', 'This changelog.'] },
+      { version: '0.10.0', date: '', lines: ['Themed panes.'] },
+      { version: '0.9.9', date: '2026-10-01', lines: [] },
+    ])
   })
 
-  test('null for a version without a section or without a bullet', async () => {
-    expect(whatsNew(LOG, '0.10')).toBeNull()
-    expect(whatsNew(LOG, '0.9.9')).toBeNull()
+  test('nothing from an empty or headless text', async () => {
+    expect(parseChangelog('')).toEqual([])
+    expect(parseChangelog('- a bullet before any version')).toEqual([])
   })
 })
 

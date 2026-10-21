@@ -1,4 +1,7 @@
-// the "what's new" toast: the mod's version from its plugin.json, its line from CHANGELOG.md
+// the mod's version from its plugin.json, its changes from CHANGELOG.md: the "what's new" toast
+// and the changes tab
+
+import type { Release } from '../types'
 
 // the version a plugin.json states, or null
 export const manifestVersion = (text: string): string | null => {
@@ -10,17 +13,24 @@ export const manifestVersion = (text: string): string | null => {
   }
 }
 
-// the first bullet under `## <version>`, backticks dropped, or null when there is none
-export const whatsNew = (changelog: string, version: string): string | null => {
-  const lines = changelog.split(/\r?\n/)
-  const start = lines.findIndex(l => l.startsWith('## ') && l.slice(3).split(/\s/)[0] === version)
-  if (start < 0) return null
-  for (const l of lines.slice(start + 1)) {
-    if (l.startsWith('## ')) return null
-    const m = /^\s*[-*]\s+(.+)$/.exec(l)
-    if (m?.[1]) return m[1].replaceAll('`', '').trim()
+// the `## <version> — <date>` sections, newest first as written; a bullet's indented
+// continuation joins it, backticks are dropped, prose between bullets is left out
+export const parseChangelog = (changelog: string): Release[] => {
+  const releases: Release[] = []
+  let lines: string[] | null = null
+  for (const l of changelog.split(/\r?\n/)) {
+    const head = /^## (\S+)(?:\s+[—-]\s+(.+))?/.exec(l)
+    if (head?.[1]) {
+      lines = []
+      releases.push({ version: head[1], date: head[2]?.trim() ?? '', lines })
+      continue
+    }
+    if (lines === null) continue
+    const bullet = /^[-*]\s+(.+)$/.exec(l)
+    if (bullet?.[1]) lines.push(bullet[1].replaceAll('`', '').trim())
+    else if (/^\s+\S/.test(l) && lines.length) lines[lines.length - 1] += ` ${l.replaceAll('`', '').trim()}`
   }
-  return null
+  return releases
 }
 
 // whether to toast: an update from a version seen before, or from before 0.10.1, which kept no

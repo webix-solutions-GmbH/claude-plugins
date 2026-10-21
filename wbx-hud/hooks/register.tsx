@@ -33,7 +33,7 @@ import {
   WEEK_MS,
   windowRate,
 } from './sidebar'
-import { isUpdate, manifestVersion, whatsNew } from './changelog'
+import { isUpdate, manifestVersion, parseChangelog } from './changelog'
 import { isThemeName, THEMES, themeOf } from './themes'
 import type { ThemeName } from './themes'
 
@@ -65,17 +65,21 @@ const alertsOff = atom({ plugin: 'wbx-hud', key: 'alertsOff' } as const, [])
 // the agents whose turn runs, and the clock their elapsed time is drawn from
 const agents = atom({ plugin: 'wbx-hud', key: 'agents' } as const, [])
 const tick = atom({ plugin: 'wbx-hud', key: 'tick' } as const, 0)
-// the mod's version as its plugin.json states it, beside the sidebar's title
+// the mod's version as its plugin.json states it, beside the sidebar's title, and the newest
+// versions of its changelog, for the changes tab
 const version = atom({ plugin: 'wbx-hud', key: 'version' } as const, null)
+const changes = atom({ plugin: 'wbx-hud', key: 'changes' } as const, [])
 // ticks each second while agents run
 let ticker: Timer | undefined
 // agents whose turn ended, so a late spawn answer does not bring one back; a new turn does
 const ended = new Set<string>()
 
-// the sidebar's pane id and its settings tab's, how many tool calls its feed shows and the
-// session keeps, and its padding left and right
+// the sidebar's pane id, its settings and changes tabs', how many versions the changes tab
+// shows, how many tool calls the feed shows and the session keeps, and the padding left and right
 const PANE = 'wbx-hud'
 const SETTINGS = 'wbx-hud-settings'
+const CHANGES = 'wbx-hud-changes'
+const RECENT = 3
 const FEED = 10
 const HISTORY = 200
 const PAD = 1
@@ -303,6 +307,15 @@ const openSettings = ($: EngineInterface, terminalColumns: number | undefined) =
     ...(terminalColumns ? { columns: dockColumns(terminalColumns) } : {}),
   })
 
+// the changes tab, beside the sidebar at its width; Escape closes it
+const openChanges = ($: EngineInterface, terminalColumns: number | undefined) =>
+  $.ui.open({
+    id: CHANGES,
+    title: 'Changes',
+    closeOnEscape: true,
+    ...(terminalColumns ? { columns: dockColumns(terminalColumns) } : {}),
+  })
+
 async function setTheme($: EngineInterface, name: ThemeName) {
   await update($, theme, () => name)
   await $.store.set('theme', name)
@@ -460,9 +473,12 @@ async function restore($: EngineInterface, base: Record<Area, Levels>) {
   await readVersion($).catch(() => {})
 }
 
-// the version from plugin.json, for the title; after an update, its line of CHANGELOG.md in a
-// toast, once: the version toasted is kept in the store
+// the version from plugin.json, for the title, and the newest versions of CHANGELOG.md, for the
+// changes tab; after an update, the version's first line in a toast, once: the version toasted
+// is kept in the store
 async function readVersion($: EngineInterface) {
+  const releases = parseChangelog(await $.fs.read(`${$.plugin.root}/CHANGELOG.md`).catch(() => ''))
+  await update($, changes, () => releases.slice(0, RECENT))
   const v = manifestVersion(await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))
   if (v === null) return
   await update($, version, () => v)
@@ -470,7 +486,7 @@ async function readVersion($: EngineInterface) {
   if (seen === v) return
   // burn is stored by every reading, and restore runs before the first: a new install has none
   if (isUpdate(seen, v, (await $.store.get('burn')) !== undefined)) {
-    const news = whatsNew(await $.fs.read(`${$.plugin.root}/CHANGELOG.md`).catch(() => ''), v)
+    const news = releases.find(r => r.version === v)?.lines[0]
     await $.ui.toast(news ? `wbx-hud ${v}: ${news}` : `wbx-hud updated to ${v}`)
   }
   await $.store.set('seenVersion', v)
@@ -507,6 +523,7 @@ const USAGE = [
   '  /wbx-hud show             list what can be shown',
   '  /wbx-hud show <what>      both, bar or sidebar (kept across sessions)',
   '  /wbx-hud settings         open the settings tab beside the sidebar',
+  '  /wbx-hud changes          open the latest changes beside the sidebar',
 ].join('\n')
 
 export const register: Register = (on, options) => {
@@ -530,8 +547,8 @@ export const register: Register = (on, options) => {
     const r = await next(e)
     await $.command.register({
       name: 'wbx-hud',
-      description: 'Switch the theme, choose bar, sidebar or both, open the settings, toggle the sidebar, or preview with demo',
-      argumentHint: 'theme [name] | show [both|bar|sidebar] | settings | pane | demo [percent|off]',
+      description: 'Switch the theme, choose bar, sidebar or both, open the settings or the latest changes, toggle the sidebar, or preview with demo',
+      argumentHint: 'theme [name] | show [both|bar|sidebar] | settings | changes | pane | demo [percent|off]',
     })
     await restore($, base)
     // a failed first reading leaves it to the timer below, not the session without one
@@ -674,6 +691,10 @@ export const register: Register = (on, options) => {
     if (sub === 'settings') {
       const opened = await openSettings($, terminalColumns)
       return { text: opened.isPlaced ? 'Settings opened.' : `Settings not shown: ${opened.reason}` }
+    }
+    if (sub === 'changes') {
+      const opened = await openChanges($, terminalColumns)
+      return { text: opened.isPlaced ? 'Changes opened.' : `Changes not shown: ${opened.reason}` }
     }
     if (sub === 'pane') {
       if ((await read($, show)) === 'bar')
@@ -1138,19 +1159,24 @@ export const register: Register = (on, options) => {
       .filter(([, , isDrawn]) => isDrawn)
       .flatMap(([name, list], i) => [i > 0 ? rule(`${name}:rule`) : null, ...list])
 
-    // the title on the left, the way to the settings tab on the right
+    // the title on the left, its version opening the changes tab, the way to the settings tab on
+    // the right
     const settingsLabel = '≡ settings'
     const ver = await read($, version)
     const verLabel = ver === null ? '' : ` ${ver}`
+    const space = Math.max(w - settingsLabel.length - TITLE.length - verLabel.length, 1)
     return (
       <Box flexDirection="column" paddingX={PAD}>
         <Box key="title" flexDirection="row">
           <Text color={T.accent} bold>
             {TITLE}
           </Text>
-          <Text color={T.dim}>
-            {verLabel.padEnd(Math.max(w - settingsLabel.length - TITLE.length, verLabel.length + 1))}
-          </Text>
+          {verLabel ? (
+            <Button key="open:changes" plain onPress={() => void openChanges($, terminalColumns).catch(() => {})}>
+              <Text color={T.dim}>{verLabel}</Text>
+            </Button>
+          ) : null}
+          <Text>{' '.repeat(space)}</Text>
           <Button key="open:settings" plain onPress={() => void openSettings($, terminalColumns).catch(() => {})}>
             <Text color={T.dim}>{settingsLabel}</Text>
           </Button>
@@ -1307,6 +1333,39 @@ export const register: Register = (on, options) => {
         ) : null}
         {Input ? gap('session') : null}
         <Button key="close" plain onPress={() => void $.ui.close({ id: SETTINGS }).catch(() => {})}>
+          <Text color={T.dim}>✕ close (Esc)</Text>
+        </Button>
+      </Box>
+    )
+  })
+
+  // the changes tab: the newest versions of CHANGELOG.md, each with all its lines
+  on('ui.render', { component: 'Pane', requestId: CHANGES }, async ($, e) => {
+    const T = themeOf(await read($, theme))
+    const releases = await read($, changes)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const fg = T.dir.fg
+    return (
+      <Box flexDirection="column" paddingX={PAD}>
+        {releases.length ? null : <Text color={T.dim}>No changelog found.</Text>}
+        {releases.flatMap(r => [
+          <Text key={`h:${r.version}`}>
+            <Text color={T.accent} bold>
+              {r.version}
+            </Text>
+            {r.date ? <Text color={T.dim}>{`  ${r.date}`}</Text> : null}
+          </Text>,
+          // a wrapped line hangs under its text, not under the dot
+          ...r.lines.map((line, i) => (
+            <Box key={`l:${r.version}:${i}`} flexDirection="row">
+              <Text color={T.dim}>{'· '}</Text>
+              <Text color={fg}>{line}</Text>
+            </Box>
+          )),
+          <Text key={`gap:${r.version}`}> </Text>,
+        ])}
+        {releases.length ? <Text color={T.dim}>Older versions in CHANGELOG.md.</Text> : null}
+        <Button key="close" plain onPress={() => void $.ui.close({ id: CHANGES }).catch(() => {})}>
           <Text color={T.dim}>✕ close (Esc)</Text>
         </Button>
       </Box>
