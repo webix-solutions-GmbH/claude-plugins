@@ -1,0 +1,36 @@
+{
+  "name": "wbx-hud",
+  "version": "0.9.1",
+  "description": "Native status bar under the prompt and a sidebar: path, git, model, context, rate limits with their pace, running agents, tool feed",
+  "author": {
+    "name": "Heiko Siegrist"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "sidebar": {
+      "type": "string",
+      "title": "Sidebar",
+      "description": "auto opens the sidebar at session start (docked on a wide terminal); manual only on /wbx-hud pane.",
+      "options": ["auto", "manual"],
+      "default": "auto"
+    },
+    "contextLevels": {
+      "type": "string",
+      "title": "Context thresholds",
+      "description": "Percentages from which the context ring turns yellow, orange and red, comma separated and ascending; repeat a value to skip a level. The settings tab's value wins.",
+      "default": "20,30,50"
+    },
+    "fiveHourLevels": {
+      "type": "string",
+      "title": "5-hour limit thresholds",
+      "description": "Percentages from which the 5h ring turns yellow, orange and red, comma separated and ascending; repeat a value to skip a level. The settings tab's value wins.",
+      "default": "50,70,90"
+    },
+    "sevenDayLevels": {
+      "type": "string",
+      "title": "7-day limit thresholds",
+      "description": "Percentages from which the 7d ring turns yellow, orange and red, comma separated and ascending; repeat a value to skip a level. The settings tab's value wins.",
+      "default": "50,75,90"
+    }
+  }
+}

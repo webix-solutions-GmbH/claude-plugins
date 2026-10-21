@@ -1,0 +1,14 @@
+{
+  "name": "webix",
+  "owner": {
+    "name": "webix solutions GmbH"
+  },
+  "description": "Claude Code mods by webix",
+  "plugins": [
+    {
+      "name": "wbx-hud",
+      "source": "./wbx-hud",
+      "description": "Native status bar and sidebar: path, git, model, context, rate limits with their pace, tool feed"
+    }
+  ]
+}
