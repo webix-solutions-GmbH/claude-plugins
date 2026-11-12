@@ -1,9 +1,8 @@
 # Roadmap
 
-Open ideas for wbx-hud, none started. Strike an item when it ships (the feature's note then
-describes it).
+Open ideas, none started. Strike an item when it ships (the feature's note then describes it).
 
-## Ideas
+## wbx-hud
 
 - GitHub Releases, only if outsiders follow the repo (kept small on purpose until then): tags
   `wbx-hud--v<version>`, a GitHub Actions workflow on the tag push makes the release with `gh`
@@ -22,6 +21,32 @@ describes it).
   - A click on a limit opens `/usage`.
   - Not theme or demo: the settings tab has the theme, the demo is for developing.
 - `panel` as an alias for `sidebar` in `/wbx-hud show`.
+
+## New mods
+
+Each needs a `marketplace.json` entry and its folder in `CLAUDE_CODE_PLUGIN_DIRS`.
+
+- wbx-guard: the commit flow as a gating hook ([gating-hooks.md](architecture/gating-hooks.md))
+  rather than a rule Claude has to remember. Asks before `git push`, a merge into main or a
+  commit on main; warns when the first edit lands on main. Smallest of the three, used daily.
+  - Possibly part of it: a warning when a branch changes code but no `.docs/` note.
+- wbx-devops: the Azure DevOps work item of the current branch (number, title, state) in the
+  bar, plus its PR and the PR's build status; a click opens the item.
+- wbx-time: active time per branch or work item in the bar, a button that books it via the
+  time-tracking MCP server. Only if booking is a real chore today.
+
+## Skills
+
+A plugin can ship `skills/<name>/SKILL.md` beside or instead of a hooks module, listed in
+the same marketplace. Public repo: no internal hostnames or paths in them.
+
+- wbx-git-flow: branch before the first edit, run the checks, ask "fold or new commit",
+  Co-Authored-By line, merge and push only on explicit word. Portable across repos.
+- wbx-knowledgebase: the `.docs/` method ([CONVENTIONS.md](CONVENTIONS.md)) for other repos:
+  set up, start at README, one fact per note, `verified_commit`.
+- wbx-devops-flow: work item → branch name → PR with the item linked, via the Azure DevOps MCP.
+- wbx-mudblazor: house conventions for MudBlazor components; check a component in the
+  MudBlazor MCP before writing it.
 
 ## Small leftovers
 
