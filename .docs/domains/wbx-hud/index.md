@@ -1,7 +1,7 @@
 # wbx-hud
 
 The status bar and sidebar mod. Code: `wbx-hud/hooks/register.tsx` (hooks, drawing), pure helpers
-in `hooks/sidebar.ts`, `hooks/levels.ts`, `hooks/themes.ts`; atoms declared in `types/index.d.ts`.
+in `hooks/sidebar.ts`, `hooks/levels.ts`, `hooks/themes.ts`, `hooks/cost.ts`; atoms declared in `types/index.d.ts`.
 
 | Note | In one line |
 |---|---|
@@ -14,6 +14,7 @@ in `hooks/sidebar.ts`, `hooks/levels.ts`, `hooks/themes.ts`; atoms declared in `
 | [alerts.md](alerts.md) | levels from thresholds, fills, hints, toasts and the red band |
 | [pace.md](pace.md) | 5h pace from stored readings, 7d pace from the window, the forecast |
 | [tool-feed.md](tool-feed.md) | the session's tool calls in the sidebar |
+| [cost.md](cost.md) | the cost at API prices: session, daily history, month projected, the costs tab |
 | [agents.md](agents.md) | running subagents in the sidebar and the bar |
 | [effort.md](effort.md) | where the effort beside the model comes from |
 | [clear.md](clear.md) | getting the settings and readings back after `/clear` |

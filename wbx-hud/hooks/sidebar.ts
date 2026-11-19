@@ -32,7 +32,12 @@ export const ITEMS: readonly ItemRow[] = [
   { item: 'seven_day_pace', label: 'pace', parent: 'seven_day', places: BOTH },
   { item: 'agents', label: 'Agents', places: BOTH },
   { item: 'tools', label: 'Tools', places: SIDEBAR },
+  { item: 'cost', label: 'Cost (API)', places: SIDEBAR },
 ]
+
+// off until switched on: for these the hidden lists hold the places they are switched on in, so
+// a stored list from before an item came keeps it off
+export const OPT_IN: readonly Item[] = ['cost']
 
 const isItem = (x: unknown): x is Item => typeof x === 'string' && ITEMS.some(r => r.item === x)
 
@@ -68,9 +73,13 @@ export const restoreHidden = (stored: unknown, isEffortShown?: unknown): Hidden 
 
 const parentOf = (item: Item) => ITEMS.find(r => r.item === item)?.parent
 
+// switched on in a place by itself, whatever the item it is a part of
+export const isChecked = (hidden: Hidden, place: Place, item: Item) =>
+  hidden[place].includes(item) === OPT_IN.includes(item)
+
 // drawn in a place: switched on there, as is the item it is a part of
 export const isOn = (hidden: Hidden, place: Place, item: Item): boolean => {
-  if (hidden[place].includes(item)) return false
+  if (!isChecked(hidden, place, item)) return false
   const parent = parentOf(item)
   return parent === undefined || isOn(hidden, place, parent)
 }

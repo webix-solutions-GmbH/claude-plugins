@@ -120,16 +120,53 @@ Context used    [x]    [x]
   pace          [x]    [ ]
 Agents          [x]    [x]
 Tools           [x]
+Cost (API)      [ ]
 ```
 
 **Changes tab**: the version beside `webix HUD`, or `/wbx-hud changes`, opens the latest five
 versions of the mod's [changelog](wbx-hud/CHANGELOG.md) beside the sidebar. After an update a
 toast says what's new, once.
 
+**Cost at API prices** (off by default; `Cost (API)` in the items table switches it on): what
+the work would cost on pay-as-you-go API billing, for instance to compare a subscription seat
+with API usage per developer. The sidebar's COST section shows the session, today, the last 7
+and 30 days, a month projected from the last 30 days (counted from the first day with a cost,
+so a fresh install is not averaged over empty weeks) and a sparkline of the days. `▸ details`,
+`$ costs` at the top of the sidebar (there with the section off too) or `/wbx-hud costs` opens
+a tab with the sums, the last 10 sessions and a bar per day for the last 30 days. A session is listed by its name: your `/rename`, else the title Claude
+gave it, else its first prompt, with its folder and when it last ran; `●` marks this one.
+
+```
+LAST 3 SESSIONS
+● Cost reporting for Max plans  $8.42
+  mods · Th 11-19 16:05
+  auth work                     $3.10
+  web · We 11-18 17:40
+  fix the flaky test            $0.85
+  api · We 11-18 09:12
+```
+
+```
+COST  estimate at API prices
+session                    $4.20
+today                     $12.34
+last 7 days               $61.80
+last 30 days             $244.10
+≈ $280.50 a month (from 26 days)
+ ▂▅▃▁  ▄▆▂▃▅  ▃▄█▂▁  ▂▅▃▄▂  ▃▆▄
+▸ details
+```
+
+The figures are Claude Code's own estimate (as `/cost` shows it): token counts priced at API
+list prices, not a bill; on a subscription none of it is charged. The history sums every
+session on this machine that runs wbx-hud, from the version that brought it (0.12.0), kept 60
+days; each session's growth is counted once, so `/clear`, a restart or `/resume` do not count
+twice. Sessions without the mod, other machines and the web are not in it.
+
 **Sidebar**: a pane with the bar's figures in full and what the bar has no room for.
 
 ```
-webix HUD 0.11.0      ≡ settings
+webix HUD 0.12.0 $ costs  ≡ settings
 ────────────────────────────────
 ◆ Opus 5.5 (1M) · high
 ⌂ C:/Development/…/mods

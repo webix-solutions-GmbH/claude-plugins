@@ -10,7 +10,15 @@ Open ideas, none started. Strike an item when it ships (the feature's note then 
   `wbx-hud/CHANGELOG.md` ([whats-new.md](domains/wbx-hud/whats-new.md)).
 
 - Cost per turn (`cost.usd` between `turn.start` and `turn.complete`), the last turns and the
-  session average. Doubtful: the cost was taken out of the sidebar once.
+  session average. Doubtful now the COST section has the session and the days.
+- Cost backfill: Claude Code keeps no cost history, so days before 0.12.0 show $0. A one-off
+  `/wbx-hud costs backfill` could rebuild the last 30 days, sessions and names from the
+  transcripts in `~/.claude/projects/` (each reply's token counts and model). Needs the mod's own
+  price table per model, kept by hand, so its figures can differ from `/cost`'s; backfilled days
+  marked as such. Only if waiting for the history to build up is not enough.
+- Team cost at API prices: pool each developer's month projected
+  ([cost.md](domains/wbx-hud/cost.md)) in one shared place (an export command, or a shared
+  file). Only once the per-machine figures have been looked at for a while.
 - Claude's own changes this session: only Edit/Write calls, not the user's edits.
 - Recent commits (the last 3 of `git log`) and the stash count.
 - Quick actions where they matter, not a toolbar; each an items-table row, run via

@@ -3,6 +3,12 @@
 What changed in wbx-hud, newest first. The first line of a version is the one the
 "what's new" toast shows after an update.
 
+## 0.12.0 — 2026-11-19
+
+- What your work would cost at API prices: switch on "Cost (API)" in the settings for the session, today, 7 and 30 days and a month projected.
+- $ costs at the top of the sidebar, /wbx-hud costs, or "details" in the cost section open the last 10 sessions with their names and costs, and a bar per day for the last 30 days.
+- An estimate from token counts, not a bill; the history sums this machine's sessions from this version on.
+
 ## 0.11.2 — 2026-10-21
 
 - The 7d pace stays yellow while it would cost at most 2 work hours before the reset, not orange for any.

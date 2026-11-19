@@ -17,4 +17,6 @@
 | pace | how fast a limit rises per hour, and whether it fills before it resets |
 | burn | the stored 5h readings the 5h pace is figured from |
 | reading | one `readAll`: usage, model, directory, git, all at once |
+| cost ledger | the store's `costs`: each day's cost at API prices and each session's last total, name and folder |
+| opt-in item | an items-table row off by default (`OPT_IN`), stored where it is switched on |
 | `@inline` | the plugin id suffix of a mod loaded through `CLAUDE_CODE_PLUGIN_DIRS` |

@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, Timer, ToolCallInput } from 'claude-code'
 
 import type { AgentRun, Alert, Area, Git, Item, Levels, Limit, Part, Place, Sample, Show, Snapshot, ToolRun } from '../types'
+import type { SessionLabel } from './cost'
 import { AREAS, DEFAULT_LEVELS, fmtLevels, levelColor, levelOf, parseLevels, readLevels, restoreLevels } from './levels'
 import {
   addSample,
@@ -18,6 +19,7 @@ import {
   fmtSecs,
   forecast,
   inputTokens,
+  isChecked,
   isOn,
   isShow,
   ITEMS,
@@ -34,6 +36,21 @@ import {
   windowRate,
 } from './sidebar'
 import { isUpdate, manifestVersion, parseChangelog } from './changelog'
+import {
+  betterName,
+  fmtDay,
+  fmtUsd,
+  isNews,
+  lastDays,
+  latestSessions,
+  NAME_RANK,
+  parseTitles,
+  projectMonth,
+  recordCost,
+  restoreLedger,
+  sparkline,
+  sumDays,
+} from './cost'
 import { isThemeName, THEMES, themeOf } from './themes'
 import type { ThemeName } from './themes'
 
@@ -72,6 +89,11 @@ const tick = atom({ plugin: 'wbx-hud', key: 'tick' } as const, 0)
 // versions of its changelog, for the changes tab
 const version = atom({ plugin: 'wbx-hud', key: 'version' } as const, null)
 const changes = atom({ plugin: 'wbx-hud', key: 'changes' } as const, [])
+// each local day's cost on this machine, from the store's "costs" (cost.ts)
+const costDays = atom({ plugin: 'wbx-hud', key: 'costDays' } as const, {})
+// the latest sessions there, for the costs tab, and this session's name to keep with its cost
+const costSessions = atom({ plugin: 'wbx-hud', key: 'costSessions' } as const, [])
+const sessionName = atom({ plugin: 'wbx-hud', key: 'sessionName' } as const, null)
 // ticks each second while agents run
 let ticker: Timer | undefined
 // agents whose turn ended, so a late spawn answer does not bring one back; a new turn does
@@ -82,6 +104,12 @@ const ended = new Set<string>()
 const PANE = 'wbx-hud'
 const SETTINGS = 'wbx-hud-settings'
 const CHANGES = 'wbx-hud-changes'
+const COSTS = 'wbx-hud-costs'
+// the days the costs tab charts, and the sidebar's sparkline at most; the sessions it lists
+const CHART_DAYS = 30
+const COST_SESSIONS = 10
+// how much of the transcript's end is read for the session's title
+const TITLE_TAIL = 64 * 1024
 const RECENT = 5
 const FEED = 10
 const HISTORY = 200
@@ -166,12 +194,15 @@ function refresh($: EngineInterface) {
 }
 
 async function readAll($: EngineInterface) {
-  const [cwd, model, usage, now] = await Promise.all([
+  const [cwd, model, usage, now, sessionId] = await Promise.all([
     $.session.cwd(),
     $.session.model(),
     // the sidebar's breakdown; summary is estimated locally and sends no request
     $.session.usage({ breakdown: 'summary' }),
     $.clock.now(),
+    // with the usage, not after git: around a /clear an id read later would take the ended
+    // session's total for the new one's, and count it twice
+    $.session.id().catch(() => undefined),
   ])
   let git: Git | null = null
   try {
@@ -203,9 +234,13 @@ async function readAll($: EngineInterface) {
     parts,
     limits,
     costUsd: usage.cost?.usd,
+    isCostGuessed: usage.cost?.hasUnknownPrice === true,
     now,
   }
   await update($, snap, () => next)
+  const folder = cwd.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || cwd
+  const name = (await read($, sessionName))?.name
+  await recordCosts($, sessionId, usage.cost?.usd, now, { name, folder }).catch(() => {})
   // empty after a /clear, which starts the session's values over: go on from the stored ones
   // rather than overwrite them
   const kept = restoreBurn(await $.store.get('burn'), now)
@@ -218,6 +253,43 @@ async function readAll($: EngineInterface) {
   })
   await $.store.set('burn', await read($, burn))
   await toastLevels($, next).catch(() => {})
+}
+
+// the session's cost growth goes to today's in the store, which every session shares: read and
+// written back at once, and only when it grew, so two sessions seldom cross. The atom follows
+// the store either way, as other sessions add to it too
+async function recordCosts(
+  $: EngineInterface,
+  id: string | undefined,
+  usd: number | undefined,
+  now: number,
+  label: SessionLabel,
+) {
+  let ledger = restoreLedger(await $.store.get('costs'))
+  if (id !== undefined && usd !== undefined && isNews(ledger, id, usd, label)) {
+    ledger = recordCost(ledger, id, usd, now, label)
+    await $.store.set('costs', ledger)
+  }
+  const days = ledger.days
+  const latest = latestSessions(ledger, COST_SESSIONS)
+  await update($, costDays, () => days)
+  await update($, costSessions, () => latest)
+}
+
+// a name for the session, kept where it ranks at least as high as the one known
+async function nameSession($: EngineInterface, name: string | undefined, rank: number) {
+  await update($, sessionName, known => betterName(known, name, rank))
+}
+
+// the title Claude gave the session, or its /rename, from the transcript's last 64 KB
+async function readTitle($: EngineInterface) {
+  const { transcriptPath } = await $.session.info()
+  if (!transcriptPath) return
+  const { size } = await $.fs.stat(transcriptPath)
+  const tail = await $.fs.read(transcriptPath, { offset: Math.max(size - TITLE_TAIL, 0), length: TITLE_TAIL })
+  const { rename, title } = parseTitles(tail)
+  await nameSession($, title, NAME_RANK.title)
+  await nameSession($, rename, NAME_RANK.rename)
 }
 
 async function startRun($: EngineInterface, e: ToolCallInput) {
@@ -315,6 +387,15 @@ const openChanges = ($: EngineInterface, terminalColumns: number | undefined) =>
   $.ui.open({
     id: CHANGES,
     title: 'Changes',
+    closeOnEscape: true,
+    ...(terminalColumns ? { columns: dockColumns(terminalColumns) } : {}),
+  })
+
+// the costs tab, beside the sidebar at its width; Escape closes it
+const openCosts = ($: EngineInterface, terminalColumns: number | undefined) =>
+  $.ui.open({
+    id: COSTS,
+    title: 'Costs',
     closeOnEscape: true,
     ...(terminalColumns ? { columns: dockColumns(terminalColumns) } : {}),
   })
@@ -536,6 +617,7 @@ const USAGE = [
   '  /wbx-hud show <what>      both, bar or sidebar (kept across sessions)',
   '  /wbx-hud settings         open the settings tab beside the sidebar',
   '  /wbx-hud changes          open the latest changes beside the sidebar',
+  '  /wbx-hud costs            open the cost by day at API prices beside the sidebar',
 ].join('\n')
 
 export const register: Register = (on, options) => {
@@ -559,8 +641,8 @@ export const register: Register = (on, options) => {
     const r = await next(e)
     await $.command.register({
       name: 'wbx-hud',
-      description: 'Switch the theme, choose bar, sidebar or both, open the settings or the latest changes, toggle the sidebar, or preview with demo',
-      argumentHint: 'theme [name] | show [both|bar|sidebar] | settings | changes | pane | demo [percent|off]',
+      description: 'Switch the theme, choose bar, sidebar or both, open the settings, the latest changes or the costs, toggle the sidebar, or preview with demo',
+      argumentHint: 'theme [name] | show [both|bar|sidebar] | settings | changes | costs | pane | demo [percent|off]',
     })
     await restore($, base)
     // a failed first reading leaves it to the timer below, not the session without one
@@ -646,7 +728,24 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const r = await next(e)
     if (e.agentId !== undefined) await endAgent($, e.agentId).catch(() => {})
+    // the main turn's end: Claude may have titled the session by now
+    else await readTitle($).catch(() => {})
     await refresh($).catch(() => {})
+    return r
+  })
+
+  // the first prompt names the session for the cost ledger until a title or /rename does; a
+  // slash command's line or a prompt the person did not type does not
+  on('prompt.submit', async ($, e, next) => {
+    if (!e.command && !e.isMeta && (await read($, sessionName).catch(() => null)) === null)
+      await nameSession($, e.text.split('\n')[0], NAME_RANK.prompt).catch(() => {})
+    return next(e)
+  })
+
+  // a /rename names it at once, over any title
+  on('command.run', { command: 'rename' }, async ($, e, next) => {
+    const r = await next(e)
+    await nameSession($, e.args, NAME_RANK.rename).catch(() => {})
     return r
   })
 
@@ -714,6 +813,10 @@ export const register: Register = (on, options) => {
     if (sub === 'changes') {
       const opened = await openChanges($, terminalColumns)
       return { text: opened.isPlaced ? 'Changes opened.' : `Changes not shown: ${opened.reason}` }
+    }
+    if (sub === 'costs') {
+      const opened = await openCosts($, terminalColumns)
+      return { text: opened.isPlaced ? 'Costs opened.' : `Costs not shown: ${opened.reason}` }
     }
     if (sub === 'pane') {
       if ((await read($, show)) === 'bar')
@@ -925,6 +1028,7 @@ export const register: Register = (on, options) => {
     const shows = (item: Item) => isOn(off, 'sidebar', item)
     const crew = await read($, agents)
     const clock = await read($, tick)
+    const days = await read($, costDays)
     const model = modelLabel(live?.model ?? '', await read($, effort), shows('effort'))
     const levels = await read($, thresholds)
     const alertOff = await read($, alertsOff)
@@ -1167,12 +1271,47 @@ export const register: Register = (on, options) => {
       ...(toolRows.length ? toolRows : [<Text key="tools:none" color={T.dim}>No tool calls yet.</Text>]),
       toggle('tools:bottom'),
     ]
+    // the cost at API prices: the session's, the history's sums, a month projected from them,
+    // the last days as a sparkline; a click opens the costs tab
+    const costRow = (key: string, label: string, usd: number) => {
+      const value = fmtUsd(usd)
+      return (
+        <Text key={`cost:${key}`}>
+          <Text color={T.dim}>{label.padEnd(Math.max(w - value.length, 1))}</Text>
+          <Text color={fg}>{value}</Text>
+        </Text>
+      )
+    }
+    const month = projectMonth(days, s.now)
+    const spark = sparkline(lastDays(days, s.now, Math.min(CHART_DAYS, w)).map(d => d.usd))
+    const costSection = [
+      heading('COST', <Text color={T.dim}>{fit('  estimate at API prices', w - 4)}</Text>),
+      s.costUsd === undefined ? null : costRow('session', `session${s.isCostGuessed ? ' (a price guessed)' : ''}`, s.costUsd),
+      costRow('today', 'today', sumDays(days, s.now, 1)),
+      costRow('week', 'last 7 days', sumDays(days, s.now, 7)),
+      costRow('month', 'last 30 days', sumDays(days, s.now, 30)),
+      month ? (
+        <Text key="cost:projected" color={T.dim}>
+          {fit(`≈ ${fmtUsd(month.usd)} a month (from ${month.days} day${month.days === 1 ? '' : 's'})`, w)}
+        </Text>
+      ) : null,
+      month ? (
+        <Text key="cost:spark" color={T.tokens}>
+          {spark}
+        </Text>
+      ) : null,
+      <Button key="cost:chart" plain onPress={() => void openCosts($, terminalColumns).catch(() => {})}>
+        <Text color={T.label ?? T.dim}>▸ details</Text>
+      </Button>,
+    ]
+
     // the agents' section only while one runs, or one's transcript is in view
     const isAgentsDrawn = crew.length > 0 || viewed !== undefined
     const sections: [string, (RenderElement | null)[], boolean][] = [
       ['where', where, where.some(r => r !== null)],
       ['context', context, shows('context')],
       ['limits', limits, shows('five_hour') || shows('seven_day')],
+      ['cost', costSection, shows('cost')],
       ['agents', agentSection, shows('agents') && isAgentsDrawn],
       ['tools', toolSection, shows('tools')],
     ]
@@ -1180,12 +1319,14 @@ export const register: Register = (on, options) => {
       .filter(([, , isDrawn]) => isDrawn)
       .flatMap(([name, list], i) => [i > 0 ? rule(`${name}:rule`) : null, ...list])
 
-    // the title on the left, its version opening the changes tab, the way to the settings tab on
-    // the right
-    const settingsLabel = '≡ settings'
+    // the title on the left, its version opening the changes tab, the ways to the costs and
+    // settings tabs on the right; too narrow for the words, their signs alone
     const ver = await read($, version)
     const verLabel = ver === null ? '' : ` ${ver}`
-    const space = Math.max(w - settingsLabel.length - TITLE.length - verLabel.length, 1)
+    const isRoomy = TITLE.length + verLabel.length + 1 + '$ costs  ≡ settings'.length <= w
+    const costsLabel = isRoomy ? '$ costs' : '$'
+    const settingsLabel = isRoomy ? '≡ settings' : '≡'
+    const space = Math.max(w - TITLE.length - verLabel.length - costsLabel.length - 2 - settingsLabel.length, 1)
     return (
       <Box flexDirection="column" paddingX={PAD}>
         <Box key="title" flexDirection="row">
@@ -1199,6 +1340,10 @@ export const register: Register = (on, options) => {
             </Button>
           ) : null}
           <Text>{' '.repeat(space)}</Text>
+          <Button key="open:costs" plain onPress={() => void openCosts($, terminalColumns).catch(() => {})}>
+            <Text color={T.dim}>{costsLabel}</Text>
+          </Button>
+          <Text>{'  '}</Text>
           <Button key="open:settings" plain onPress={() => void openSettings($, terminalColumns).catch(() => {})}>
             <Text color={T.dim}>{settingsLabel}</Text>
           </Button>
@@ -1270,11 +1415,11 @@ export const register: Register = (on, options) => {
     // part of is off there, blank where the place cannot draw it
     const cell = (place: Place, row: (typeof ITEMS)[number]) => {
       if (!row.places.includes(place)) return <Text key={`cell:${place}:${row.item}`}>{'   '}</Text>
-      const isChecked = !off[place].includes(row.item)
+      const isOnHere = isChecked(off, place, row.item)
       const isLive = row.parent === undefined || isOn(off, place, row.parent)
       return (
         <Button key={`cell:${place}:${row.item}`} plain onPress={() => void toggle($, place, row.item).catch(() => {})}>
-          <Text color={isChecked && isLive ? T.ok : T.dim}>{isChecked ? '[x]' : '[ ]'}</Text>
+          <Text color={isOnHere && isLive ? T.ok : T.dim}>{isOnHere ? '[x]' : '[ ]'}</Text>
         </Button>
       )
     }
@@ -1391,6 +1536,111 @@ export const register: Register = (on, options) => {
         {releases.length ? <Text color={T.dim}>Older versions in CHANGELOG.md.</Text> : null}
         <Text key="gap:close"> </Text>
         <Button key="close" plain onPress={() => void $.ui.close({ id: CHANGES }).catch(() => {})}>
+          <Text color={T.dim}>✕ close (Esc)</Text>
+        </Button>
+      </Box>
+    )
+  })
+
+  // the costs tab: the sums, the month projected, then a bar per day, newest first, scaled to
+  // the costliest; weekends dim, today bold
+  on('ui.render', { component: 'Pane', requestId: COSTS }, async ($, e) => {
+    const T = themeOf(await read($, theme))
+    const days = await read($, costDays)
+    const live = await read($, snap)
+    const now = live?.now ?? (await $.clock.now())
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const fg = T.dir.fg
+    const w = Math.max(e.props.bodyColumns - 2 * PAD, 20)
+    const chart = lastDays(days, now, CHART_DAYS).reverse()
+    const max = Math.max(...chart.map(d => d.usd), 0)
+    const valueW = Math.max(...chart.map(d => fmtUsd(d.usd).length), 5)
+    // Th 11-19 $12.34 ████
+    const barW = Math.max(w - 8 - 1 - valueW - 1, 3)
+    const month = projectMonth(days, now)
+    // the latest sessions, this one marked: its name and cost, then its folder and when it last ran
+    const sessions = await read($, costSessions)
+    const current = await $.session.id().catch(() => undefined)
+    const clockOf = (at: number) => {
+      const d = new Date(at)
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    }
+    const sessionRows = sessions.flatMap(x => {
+      const value = fmtUsd(x.usd)
+      const isThis = x.id === current
+      const lead = isThis ? '● ' : '  '
+      const name = fit(x.name ?? x.folder ?? x.id.slice(0, 8), Math.max(w - lead.length - value.length - 1, 4))
+      const space = ' '.repeat(Math.max(w - lead.length - [...name].length - value.length, 1))
+      const where = [x.folder, `${fmtDay(x.at)} ${clockOf(x.at)}`].filter(Boolean).join(' · ')
+      return [
+        <Text key={`s:${x.id}`}>
+          <Text color={T.ok}>{lead}</Text>
+          <Text color={fg} bold={isThis}>
+            {name + space}
+          </Text>
+          <Text color={fg}>{value}</Text>
+        </Text>,
+        <Text key={`s:${x.id}:where`} color={T.dim}>
+          {fit(`  ${where}`, w)}
+        </Text>,
+      ]
+    })
+    const sum = (label: string, usd: number) => {
+      const value = fmtUsd(usd)
+      return (
+        <Text key={`sum:${label}`}>
+          <Text color={T.dim}>{label.padEnd(Math.max(w - value.length, 1))}</Text>
+          <Text color={fg} bold>
+            {value}
+          </Text>
+        </Text>
+      )
+    }
+    return (
+      <Box flexDirection="column" paddingX={PAD}>
+        <Text key="gap:top"> </Text>
+        <Text key="head" color={T.accent} bold>
+          COST AT API PRICES
+        </Text>
+        {sum('today', sumDays(days, now, 1))}
+        {sum('last 7 days', sumDays(days, now, 7))}
+        {sum('last 30 days', sumDays(days, now, 30))}
+        {month ? sum(`a month, from ${month.days} day${month.days === 1 ? '' : 's'}`, month.usd) : null}
+        {sessionRows.length ? <Text key="gap:sessions"> </Text> : null}
+        {sessionRows.length ? (
+          <Text key="head:sessions" color={T.accent} bold>
+            {`LAST ${sessionRows.length / 2 === 1 ? 'SESSION' : `${sessionRows.length / 2} SESSIONS`}`}
+          </Text>
+        ) : null}
+        {sessionRows}
+        <Text key="gap:chart"> </Text>
+        <Text key="head:days" color={T.accent} bold>
+          BY DAY
+        </Text>
+        {max > 0 ? (
+          chart.map((d, i) => {
+            const weekday = new Date(d.at).getDay()
+            const isWeekend = weekday === 0 || weekday === 6
+            return (
+              <Text key={`day:${d.day}`}>
+                <Text color={isWeekend ? T.dim : fg} bold={i === 0}>
+                  {fmtDay(d.at)}
+                </Text>
+                <Text color={d.usd > 0 ? fg : T.dim}>{` ${fmtUsd(d.usd).padStart(valueW)} `}</Text>
+                <Text color={T.tokens}>{thinBar(d.usd / max, barW)}</Text>
+              </Text>
+            )
+          })
+        ) : (
+          <Text color={T.dim}>No cost recorded yet.</Text>
+        )}
+        <Text key="gap:note"> </Text>
+        <Text key="note" color={T.dim} wrap="wrap">
+          Claude Code's estimate from token counts at API list prices, summed over this machine's
+          sessions with wbx-hud; on a subscription none of it is billed. Not a bill.
+        </Text>
+        <Text key="gap:close"> </Text>
+        <Button key="close" plain onPress={() => void $.ui.close({ id: COSTS }).catch(() => {})}>
           <Text color={T.dim}>✕ close (Esc)</Text>
         </Button>
       </Box>

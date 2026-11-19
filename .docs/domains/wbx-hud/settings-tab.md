@@ -16,8 +16,11 @@ A second pane, id `wbx-hud-settings` (`wbx-hud/hooks/register.tsx:75`), opened b
 - **Items table**: an item per row (`ITEMS`, `wbx-hud/hooks/sidebar.ts:18`), a sidebar and a bar
   column. Parts (effort, tokens, reset, pace, ...) have a `parent`; `isOn` checks both
   (`wbx-hud/hooks/sidebar.ts:72`). The `hidden` atom and store hold `{ sidebar, bar }`;
-  `restoreHidden` (`wbx-hud/hooks/sidebar.ts:54`) also reads the pre-0.8 sections list and
+  `restoreHidden` (`wbx-hud/hooks/sidebar.ts:59`) also reads the pre-0.8 sections list and
   `isEffortShown`.
+- **Opt-in items** (`OPT_IN`, `wbx-hud/hooks/sidebar.ts:40`; so far `cost`): off by default, so
+  for them the `hidden` lists hold the places they are switched **on** in; a stored list from
+  before the item came keeps it off. `isChecked` (`wbx-hud/hooks/sidebar.ts:77`) reads either kind.
 - **Alerts**: a check row per alert, the `alertsOff` atom and store ([alerts.md](alerts.md)).
 - **Thresholds**: an `Input` per area; an empty field goes back to the `/config` value. The
   mobile app draws no field, so these rows and the rename are left out there.

@@ -14,9 +14,31 @@ export type Snapshot = {
   /** the window's used categories, largest first; absent when no breakdown came back */
   parts?: Part[]
   limits: Limit[]
+  /** the session's cost as /cost totals it: an estimate at API list prices, not a bill */
   costUsd?: number
+  /** the cost includes a model with no known price, priced at another's rates */
+  isCostGuessed?: boolean
   now: number
 }
+/** the cost history kept in the store under "costs": each local day's cost (2026-11-19), and
+ * each session's total as last read, so only its growth is counted */
+export type CostLedger = {
+  days: Record<string, number>
+  sessions: Record<string, CostSession>
+}
+/** a session in the cost ledger: its total as last read, when, and what the costs tab names it by */
+export type CostSession = {
+  usd: number
+  /** the last reading */
+  at: number
+  /** the first reading */
+  startedAt?: number
+  name?: string
+  /** the folder's last part */
+  folder?: string
+}
+/** the session's name as known so far, and where it came from: a higher rank wins */
+export type SessionName = { name: string; rank: number }
 /** what the mod draws: the bar under the prompt, the sidebar, or both */
 export type Show = 'both' | 'bar' | 'sidebar'
 /** where an item is drawn */
@@ -39,7 +61,8 @@ export type Item =
   | 'seven_day_pace'
   | 'agents'
   | 'tools'
-/** the items switched off, by place */
+  | 'cost'
+/** the items switched off, by place; for an opt-in item (OPT_IN) the ones switched on */
 export type Hidden = Record<Place, Item[]>
 /** what has thresholds: the context and the two limits */
 export type Area = 'context' | 'five_hour' | 'seven_day'
@@ -99,6 +122,9 @@ declare module 'claude-code' {
     /** tick: the clock as of the last second while agents run, for their elapsed time */
     /** version: the mod's version from its plugin.json, null until read; the last one toasted is the store's "seenVersion" */
     /** changes: the newest versions of CHANGELOG.md, for the changes tab; empty until read */
+    /** costDays: each local day's cost on this machine, as the store's "costs" holds it */
+    /** costSessions: the latest sessions of the store's "costs", newest first, for the costs tab */
+    /** sessionName: this session's name for the cost ledger, null until a prompt, title or /rename */
     'wbx-hud': {
       snap: Snapshot | null
       demo: number | null
@@ -117,6 +143,9 @@ declare module 'claude-code' {
       tick: number
       version: string | null
       changes: Release[]
+      costDays: Record<string, number>
+      costSessions: (CostSession & { id: string })[]
+      sessionName: SessionName | null
     }
   }
 }

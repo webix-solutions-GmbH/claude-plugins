@@ -1,6 +1,7 @@
 import type { On, RenderElement } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
+import { dayKey } from '../hooks/cost'
 
 const CWD = 'C:/Development/Trials/Claude/mods'
 const T0 = Date.parse('2026-10-19T12:00:00Z')
@@ -19,6 +20,8 @@ const setUp = (on: On) => {
   const at = {
     now: T0,
     five: 20,
+    // the session's cost as /cost totals it
+    usd: 1.42,
     isUsageDown: false,
     opens: [] as { columns?: number }[],
     store: new Map<string, unknown>(),
@@ -58,7 +61,7 @@ const setUp = (on: On) => {
         { kind: 'five_hour', percentUsed: at.five, resetsAt: new Date(T0 + 5 * 3_600_000).toISOString() },
         { kind: 'seven_day', percentUsed: 21, resetsAt: new Date(T0 + 4 * 86_400_000).toISOString() },
       ],
-      cost: { usd: 1.42 },
+      cost: { usd: at.usd },
     },
     }
   })
@@ -297,7 +300,9 @@ describe('sidebar', () => {
     const rows = tree.children.map(r => JSON.stringify(r))
     expect(rows[0]).toContain('webix HUD')
     expect(rows[0]).toContain('"children":["1.2.3"]')
-    expect(rows[0]).toContain('≡ settings')
+    // too narrow for the words at 34 columns: the signs alone
+    expect(rows[0]).toContain('"children":["≡"]')
+    expect(rows[0]).toContain('"children":["$"]')
     expect(rows[0]).toContain('#80BA27')
     expect(rows[1]).toContain('─')
     const text = rows.join('\n')
@@ -597,7 +602,7 @@ describe('settings tab', () => {
     const at = setUp(on)
     await start($)
     const sidebar = await mountPane($)
-    const gear = await sidebar.find({ type: 'Button', text: /settings/ })
+    const gear = await sidebar.find({ type: 'Button', text: /^≡/ })
     await sidebar.press({ key: gear!.key! })
     expect((await $.command.run({ command: 'wbx-hud', args: 'settings' } as never)).text).toBe('Settings opened.')
     expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-settings')).toHaveLength(2)
@@ -822,5 +827,169 @@ describe('changes tab', () => {
     await start($)
     const tree = JSON.stringify(await (await mountChanges($)).drawn())
     expect(tree).toContain('No changelog found.')
+  })
+})
+
+const DAY = 86_400_000
+
+// the session id the cost is kept under, switched as a new session or a /clear would
+const sessionIs = (on: On) => {
+  const s = { id: 'one' }
+  on('session.id', () => ({ value: s.id }))
+  return s
+}
+
+const costsOn = (at: { store: Map<string, unknown> }) =>
+  at.store.set('hidden', { sidebar: ['cost'], bar: ['five_hour_pace', 'seven_day_pace'] })
+
+const mountCosts = ($: Engine) =>
+  $.ui.mount({ plugin: 'wbx-hud', surface: 'terminal', component: 'Pane', requestId: 'wbx-hud-costs', props: PANE })
+
+describe('cost', () => {
+  test('the section is off until switched on, a stored list from before keeping it off', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    at.store.set('hidden', { sidebar: ['tools'], bar: [] })
+    await start($)
+    expect(JSON.stringify(await (await mountPane($)).drawn())).not.toContain('COST')
+  })
+
+  test('switched on, the session, today, 7 and 30 days and a month projected', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    costsOn(at)
+    at.store.set('costs', { days: { [dayKey(T0 - 2 * DAY)]: 3 }, sessions: {} })
+    await start($)
+    const tree = JSON.stringify(await (await mountPane($)).drawn())
+    expect(tree).toContain('COST')
+    expect(tree).toContain('estimate at API prices')
+    expect(tree).toContain('$1.42')
+    expect(tree).toContain('$4.42')
+    // 4.42 over the three days since the first with a cost, scaled to 30
+    expect(tree).toContain('≈ $44.20 a month (from 3 days)')
+    expect(tree).toContain('▸ details')
+  })
+
+  test('a session counts its growth once; a new one, and one that started over, add theirs', async ($, on) => {
+    const at = setUp(on)
+    const s = sessionIs(on)
+    await start($)
+    await start($)
+    const today = () => (at.store.get('costs') as { days: Record<string, number> }).days[dayKey(T0)]
+    expect(Math.round((today() ?? 0) * 100)).toBe(Math.round(1.42 * 100))
+    at.usd = 2
+    await start($)
+    expect(Math.round((today() ?? 0) * 100)).toBe(Math.round(2 * 100))
+    s.id = 'two'
+    at.usd = 0.5
+    await start($)
+    expect(Math.round((today() ?? 0) * 100)).toBe(Math.round(2.5 * 100))
+    // session one again, its total started over below the one remembered: all of it is new
+    s.id = 'one'
+    at.usd = 0.25
+    await start($)
+    expect(Math.round((today() ?? 0) * 100)).toBe(Math.round(2.75 * 100))
+  })
+
+  test('the tab charts the last 30 days, newest first, and opens from the section and the command', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    costsOn(at)
+    at.store.set('costs', { days: { [dayKey(T0 - DAY)]: 10, [dayKey(T0 - 40 * DAY)]: 99 }, sessions: {} })
+    await start($)
+    const tree = JSON.stringify(await (await mountCosts($)).drawn())
+    expect(tree).toContain('COST AT API PRICES')
+    expect(tree).toContain('$11.42')
+    expect(tree).not.toContain('$99')
+    expect(tree.indexOf(dayKey(T0).slice(5))).toBeLessThan(tree.indexOf(dayKey(T0 - DAY).slice(5)))
+    expect(tree).toContain('Not a bill.')
+    const sidebar = await mountPane($)
+    const chart = await sidebar.find({ type: 'Button', text: /details/ })
+    await sidebar.press({ key: chart!.key! })
+    expect((await $.command.run({ command: 'wbx-hud', args: 'costs' } as never)).text).toBe('Costs opened.')
+    expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-costs')).toHaveLength(2)
+  })
+})
+
+describe('cost by session', () => {
+  // the transcript the title is read from, at a path the files above end with
+  const transcriptOf = (on: On, at: ReturnType<typeof setUp>) => {
+    on('session.info', () => ({ value: { transcriptPath: 'C:/t/transcript.jsonl' } }))
+    on('fs.stat', (_$, e) => {
+      const text = at.files['transcript.jsonl']
+      if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
+      return { value: { kind: 'file', size: text.length, isSymlink: false } as never }
+    })
+  }
+  // the engine beneath takes the prompt as it arrives
+  const promptsArrive = (on: On) => {
+    on('prompt.submit', (_$, e) => ({ text: e.text }))
+    on('turn.complete', () => ({ text: '' }) as never)
+  }
+  const turnEnds = ($: Engine) =>
+    $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' } as never)
+
+  test('named by the first prompt, then Claude\'s title, then a /rename, which a title does not undo', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    transcriptOf(on, at)
+    promptsArrive(on)
+    on('command.run', { command: 'rename' }, () => ({ text: '' }))
+    await start($)
+    const named = () => (at.store.get('costs') as { sessions: Record<string, { name?: string; folder?: string }> }).sessions.one
+    await $.prompt.submit({ text: 'fix the login bug\nand its test' } as never)
+    await $.prompt.submit({ text: 'and another thing' } as never)
+    await turnEnds($)
+    expect(named()).toMatchObject({ name: 'fix the login bug', folder: 'mods' })
+    at.files['transcript.jsonl'] = '{"type":"ai-title","aiTitle":"Login bug fix","sessionId":"one"}\n'
+    await turnEnds($)
+    expect(named()?.name).toBe('Login bug fix')
+    await $.command.run({ command: 'rename', args: 'auth work' } as never)
+    await turnEnds($)
+    expect(named()?.name).toBe('auth work')
+  })
+
+  test('the costs tab lists the latest sessions, this one marked, newest first', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    promptsArrive(on)
+    at.store.set('costs', {
+      days: {},
+      sessions: {
+        old: { usd: 3, at: T0 - 2 * DAY, name: 'older work', folder: 'web' },
+        free: { usd: 0, at: T0 - DAY, name: 'nothing spent' },
+      },
+    })
+    await start($)
+    await $.prompt.submit({ text: 'cost by session' } as never)
+    await turnEnds($)
+    const tree = JSON.stringify(await (await mountCosts($)).drawn())
+    expect(tree).toContain('LAST 2 SESSIONS')
+    expect(tree).toContain('● ')
+    expect(tree.indexOf('cost by session')).toBeLessThan(tree.indexOf('older work'))
+    expect(tree).toContain('web · ')
+    expect(tree).not.toContain('nothing spent')
+    expect(tree).toContain('BY DAY')
+  })
+})
+
+describe('the way to the costs tab', () => {
+  test('$ costs beside ≡ settings in a wide sidebar, opening the tab with the cost section off', async ($, on) => {
+    const at = setUp(on)
+    sessionIs(on)
+    await start($)
+    const sidebar = await $.ui.mount({
+      plugin: 'wbx-hud',
+      surface: 'terminal',
+      component: 'Pane',
+      requestId: 'wbx-hud',
+      props: { ...PANE, bodyColumns: 48 },
+    })
+    const tree = JSON.stringify(await sidebar.drawn())
+    expect(tree).not.toContain('COST')
+    expect(tree).toContain('$ costs')
+    expect(tree).toContain('≡ settings')
+    await sidebar.press({ key: 'open:costs' })
+    expect(at.opens.filter(o => (o as { id?: string }).id === 'wbx-hud-costs')).toHaveLength(1)
   })
 })

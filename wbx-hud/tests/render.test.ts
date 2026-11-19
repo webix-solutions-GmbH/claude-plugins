@@ -289,7 +289,7 @@ describe('alerts', () => {
       plugin: 'wbx-hud',
       surface: 'terminal',
       component: 'AbovePrompt',
-      props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+      props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
     })
     const tree = JSON.stringify(await band.drawn())
     expect(tree).toContain('▲ 5h limit at 21%, resets in 3h00m')
@@ -326,7 +326,7 @@ describe('alerts', () => {
       plugin: 'wbx-hud',
       surface: 'terminal',
       component: 'AbovePrompt',
-      props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+      props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
     })
     expect(JSON.stringify(await band.drawn())).not.toContain('▲')
   })

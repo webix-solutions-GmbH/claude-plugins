@@ -16,7 +16,8 @@ confidence: high
 - **The store** keeps values across sessions: `$.store.get/set`. A setting lives in both: the
   atom for drawing, the store for the next session, restored at start
   (`wbx-hud/hooks/register.tsx:436`). wbx-hud stores `theme`, `show`, `hidden`, `levels`,
-  `alertsOff`, `alerted`, `burn`, `effort`.
+  `alertsOff`, `alerted`, `burn`, `effort`, `seenVersion`, `costs`
+  ([cost.md](../domains/wbx-hud/cost.md)).
 - **Settings are commands, not `/config`**: toggles go in `/wbx-hud` subcommands and the
   settings tab, kept in the store; only the thresholds and the sidebar mode are `userConfig`
   ([user-config.md](user-config.md)).

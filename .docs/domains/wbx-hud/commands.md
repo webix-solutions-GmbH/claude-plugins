@@ -18,6 +18,7 @@ prefixes stripped (`failureReason`, `wbx-hud/hooks/register.tsx:294`):
 | `show [both\|bar\|sidebar]` | what is drawn, kept in the store; on `sidebar` the bar's hook still runs to read the width, then returns the hint alone |
 | `settings` | opens the settings tab ([settings-tab.md](settings-tab.md)) |
 | `changes` | opens the changes tab, the newest five versions ([whats-new.md](whats-new.md)) |
+| `costs` | opens the costs tab, a bar per day for the last 30 days ([cost.md](cost.md)) |
 | `pane` | opens or closes the sidebar; refused while `show` is `bar` |
 | `demo [percent\|off]` | sweeps the context and both limits 0..100% in 10 s (a 100 ms timer), or pins them, or ends it |
 
