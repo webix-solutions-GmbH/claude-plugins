@@ -44,6 +44,11 @@ developer. Off by default: the opt-in item `cost` ([settings-tab.md](settings-ta
   kept whether the section is on or not: the sums, the last 10 sessions that cost anything (name and cost, then
   folder and last run; this one marked `●`), then a bar per day newest first, weekends dim.
   The sessions are only in the tab, not the sidebar.
+- **Scope**: the store is one JSON file of the mod's under the Claude Code configuration folder
+  (the engine's `$.store` doc), so the history is per folder, not per account. The mod cannot
+  split by account: `$.session.identity()` is refused to a user mod where sec-default loads (a
+  Team login), and names the organization only with a managed `forceLoginOrgUUID`. `/login`
+  switches in one folder mix accounts; `CLAUDE_CONFIG_DIR` per account keeps them apart.
 - **Not counted**: sessions without the mod, before 0.12.0, other machines, claude.ai. Pooling
   developers' figures would need a shared place; on the roadmap.
 - The bar's `$` segment for API-key users (no rate limits) is older and apart from this

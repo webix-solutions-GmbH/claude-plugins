@@ -161,7 +161,29 @@ The figures are Claude Code's own estimate (as `/cost` shows it): token counts p
 list prices, not a bill; on a subscription none of it is charged. The history sums every
 session on this machine that runs wbx-hud, from the version that brought it (0.12.0), kept 60
 days; each session's growth is counted once, so `/clear`, a restart or `/resume` do not count
-twice. Sessions without the mod, other machines and the web are not in it.
+twice.
+
+The history is local: it lives in the mod's store, one file in the Claude Code configuration
+folder (`~/.claude`), and only sessions that run wbx-hud there add to it. It is not account
+wide.
+
+| Where you work | In this history |
+|---|---|
+| Claude Code in a terminal on this machine, wbx-hud loaded | yes |
+| The desktop app's Code tab on this machine, wbx-hud loaded | likely (same engine, same configuration folder; not checked) |
+| Claude Code on another machine | no: that machine keeps its own, if the mod runs there |
+| Claude Code on the web (claude.ai/code) | no: those sessions run in the cloud |
+| claude.ai chats, Cowork | no: not Claude Code sessions |
+
+So the figure per developer covers their Claude Code work on their own machine, the part that
+would move to API billing; it reads low for someone who works much on other machines or the
+web. An account-wide view is the admin console's usage analytics, where the plan offers them.
+
+**Several accounts** (a work and a private one): the history goes by configuration folder, not
+by account; Claude Code does not tell a mod which account is signed in. Switching with
+`/login` in one folder mixes both accounts' costs in one history. To keep them apart, run each
+account with its own folder (`CLAUDE_CONFIG_DIR`, each with wbx-hud loaded): each folder keeps
+its own store and so its own history.
 
 **Sidebar**: a pane with the bar's figures in full and what the bar has no room for.
 
